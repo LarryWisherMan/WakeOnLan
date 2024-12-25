@@ -41,10 +41,10 @@ The system validates the target computer name/IP, MAC address, and proxy compute
 
 ## **Main Flow**
 1. The WoL Service receives the target computer name/IP, MAC address, and proxy computer name from the Admin.
-2. The WoL Service validates the target computer name or IP format:
+2. The system validates the target computer name or IP format:
    - Ensures the name is non-empty and adheres to naming conventions (e.g., hostname rules).
    - Checks if the IP address is valid (e.g., correct format, within acceptable ranges).
-3. The WoL Service validates the MAC address format:
+3. The System validates the MAC address format:
    - Ensures the MAC address is 6 octets in hexadecimal notation.
    - Verifies the MAC address is not a broadcast or reserved address.
 4. The WoL Service verifies the proxy computer name or IP:

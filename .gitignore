@@ -1,0 +1,47 @@
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific folders
+.vscode/
+.vs/
+.idea/
+
+# Build folders
+bin/
+obj/
+out/
+
+# Logs
+*.log
+
+# Debugging
+*.pdb
+*.ilk
+
+# Generated files
+*.exe
+*.dll
+*.app
+*.so
+*.dylib
+*.lib
+
+# Packaging
+*.nupkg
+*.snupkg
+*.symbols.nupkg
+
+# NuGet
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.lock.json
+.nuget/
+
+# Dependency folders
+packages/
+node_modules/

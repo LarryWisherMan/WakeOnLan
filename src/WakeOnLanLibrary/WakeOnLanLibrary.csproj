@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Specify the output type as a library -->
+    <OutputType>Library</OutputType>
+    <!-- Target the .NET Framework compatible with PowerShell 5.1 -->
+    <TargetFramework>net461</TargetFramework>
+    <!-- Enable Nullable Reference Types (optional) -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the Microsoft.PowerShell.5.ReferenceAssemblies NuGet package -->
+    <PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0" />
+  </ItemGroup>
+
+</Project>
