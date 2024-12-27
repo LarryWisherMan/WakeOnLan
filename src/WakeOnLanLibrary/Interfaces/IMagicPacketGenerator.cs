@@ -1,5 +1,5 @@
 
-   namespace WakeOnLanLibrary.Interfaces
+namespace WakeOnLanLibrary.Interfaces
 {
     public interface IMagicPacketGenerator
     {

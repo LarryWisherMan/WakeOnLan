@@ -39,11 +39,12 @@ The admin wants to wake up a computer that is residing on a different subnet tha
 1. The system validates the provided information (computer name/IP, MAC address, proxy computer name).
 2. The system ensures the target computer is offline.
 3. The system ensures the proxy computer is online and reachable.
-4. The system generates the magic packet using the target computer's MAC address.
-5. The system creates an event record for the wake-up request.
-6. The system periodically checks the target computer's status (e.g., ping or network response).
-7. The system updates the event record when the target computer is successfully woken up.
-8. The system notifies the admin of the success or failure of the operation.
+4. The System establishes a remote connection to Proxy computer (With credentials if applicable)
+5. The system generates the magic packet using the target computer's MAC address.
+6. The system creates an event record for the wake-up request.
+7. The system periodically checks the target computer's status (e.g., ping or network response).
+8. The system updates the event record when the target computer is successfully woken up.
+9. The system notifies the admin of the success or failure of the operation.
 
 ---
 

@@ -6,7 +6,10 @@
     <!-- Target the .NET Framework compatible with PowerShell 5.1 -->
     <TargetFramework>net461</TargetFramework>
     <!-- Enable Nullable Reference Types (optional) -->
+	  <LangVersion>9.0</LangVersion>
   </PropertyGroup>
+
+
 
   <ItemGroup>
     <!-- Reference the Microsoft.PowerShell.5.ReferenceAssemblies NuGet package -->

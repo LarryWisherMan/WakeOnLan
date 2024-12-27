@@ -1,12 +1,11 @@
 using System;
 using System.Linq;
-using WakeOnLanLibrary.Interfaces;
 
 namespace WakeOnLanLibrary.Services
 {
-    public class MagicPacketGenerator : IMagicPacketGenerator
+    public static class MagicPacketGenerator
     {
-        public byte[] GeneratePacket(string macAddress)
+        public static byte[] GeneratePacket(string macAddress)
         {
             if (string.IsNullOrWhiteSpace(macAddress))
             {

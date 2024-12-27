@@ -1,5 +1,6 @@
 using System;
 using System.Management.Automation.Runspaces;
+using System.Threading.Tasks;
 using WakeOnLanLibrary.Interfaces;
 using WakeOnLanLibrary.Models;
 
@@ -7,64 +8,48 @@ namespace WakeOnLanLibrary.Services
 {
     public class ProxyMagicPacketSender : IMagicPacketSender
     {
-        private readonly string _proxyIp;
+        private readonly IRemotePowerShellExecutor _executor;
 
-        public ProxyMagicPacketSender(string proxyIp)
+        public ProxyMagicPacketSender(IRemotePowerShellExecutor executor)
         {
-            _proxyIp = proxyIp ?? throw new ArgumentNullException(nameof(proxyIp), "Proxy IP cannot be null.");
+            _executor = executor ?? throw new ArgumentNullException(nameof(executor));
         }
 
-        public void SendPacket(MagicPacket packet)
+        public async Task SendPacketAsync(WakeOnLanRequest wolRequest)
         {
-            if (packet == null)
-            {
-                throw new ArgumentNullException(nameof(packet), "MagicPacket cannot be null.");
-            }
+            if (wolRequest == null)
+                throw new ArgumentNullException(nameof(wolRequest), "WOL request cannot be null.");
+
+            if (wolRequest.ProxyRunspace == null || wolRequest.ProxyRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
+                throw new InvalidOperationException("The proxy runspace is not available or is in a closed state.");
+
+            if (string.IsNullOrWhiteSpace(wolRequest.TargetMacAddress))
+                throw new ArgumentException("Target MAC address cannot be null or empty.", nameof(wolRequest.TargetMacAddress));
 
             // Build the PowerShell script
-            string script = $@"
-                $UdpClient = New-Object System.Net.Sockets.UdpClient
-                $Broadcast = [System.Net.IPAddress]::Broadcast
-                $Packet = [byte[]]@({string.Join(",", packet.PacketBytes)}) # Convert byte array to PowerShell array
-                $Ports = @({packet.Port}) # Ports array for flexibility
-                $Ports | ForEach-Object {{
-                    $UdpClient.Connect($Broadcast, $_)
-                    $UdpClient.Send($Packet, $Packet.Length) | Out-Null
-                }}
-                $UdpClient.Close()
-            ";
-
-            // Execute the script on the proxy computer
-            ExecuteRemoteCommand(_proxyIp, script);
-        }
-
-        private void ExecuteRemoteCommand(string proxyIp, string script)
-        {
-            var connectionInfo = new WSManConnectionInfo
-            {
-                ComputerName = proxyIp,
-                AuthenticationMechanism = AuthenticationMechanism.Default,
-
-            };
-
-            var runspace = RunspaceFactory.CreateRunspace(connectionInfo);
-            runspace.Open();
-
-            var pipeline = runspace.CreatePipeline();
-            pipeline.Commands.AddScript(script);
+            var script = BuildPowerShellScript(wolRequest);
 
             try
             {
-                pipeline.Invoke();
-                if (pipeline.HadErrors)
-                {
-                    throw new InvalidOperationException("Error occurred during remote execution.");
-                }
+                // Execute the script using the provided runspace
+                await _executor.ExecuteAsync(wolRequest.ProxyRunspace, script);
             }
-            finally
+            catch (Exception ex)
             {
-                runspace.Close();
+                throw new InvalidOperationException($"Failed to send the WOL packet using the proxy runspace.", ex);
             }
+        }
+
+        private string BuildPowerShellScript(WakeOnLanRequest wolRequest)
+        {
+            return $@"
+                $UdpClient = New-Object System.Net.Sockets.UdpClient
+                $Broadcast = [System.Net.IPAddress]::Broadcast
+                $Packet = [byte[]]@({string.Join(",", MagicPacketGenerator.GeneratePacket(wolRequest.TargetMacAddress))})
+                $UdpClient.Connect($Broadcast, {wolRequest.Port})
+                $UdpClient.Send($Packet, $Packet.Length) | Out-Null
+                $UdpClient.Close()
+            ";
         }
     }
 }

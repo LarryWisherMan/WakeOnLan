@@ -6,8 +6,6 @@ using WakeOnLanLibrary.Models;
 namespace WakeOnLanLibrary.Services
 {
 
-
-
     public class ComputerValidator : IComputerValidator
     {
         public ValidationResult Validate<TComputer>(TComputer computer) where TComputer : Computer
@@ -35,6 +33,18 @@ namespace WakeOnLanLibrary.Services
             // Specific validation for subclasses
             if (computer is TargetComputer target)
             {
+
+
+                if (NetworkHelper.IsComputerOnline(target.Name))
+                {
+                    return new ValidationResult
+                    {
+                        IsValid = false,
+                        Message = "Target Computer is already Online"
+                    };
+                }
+
+
                 if (!MacAddressHelper.IsValidMacAddress(target.MacAddress))
                 {
                     return new ValidationResult
@@ -46,7 +56,7 @@ namespace WakeOnLanLibrary.Services
             }
             else if (computer is ProxyComputer proxy)
             {
-                if (!NetworkHelper.IsComputerOnline(proxy.IpAddress))
+                if (!NetworkHelper.IsComputerOnline(proxy.Name))
                 {
                     return new ValidationResult
                     {
