@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Management.Automation.Runspaces;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Interfaces;
@@ -6,6 +7,7 @@ using WakeOnLanLibrary.Models;
 
 namespace WakeOnLanLibrary.Services
 {
+
     public class ProxyMagicPacketSender : IMagicPacketSender
     {
         private readonly IRemotePowerShellExecutor _executor;
@@ -20,36 +22,71 @@ namespace WakeOnLanLibrary.Services
             if (wolRequest == null)
                 throw new ArgumentNullException(nameof(wolRequest), "WOL request cannot be null.");
 
-            if (wolRequest.ProxyRunspace == null || wolRequest.ProxyRunspace.RunspaceStateInfo.State != RunspaceState.Opened)
-                throw new InvalidOperationException("The proxy runspace is not available or is in a closed state.");
-
             if (string.IsNullOrWhiteSpace(wolRequest.TargetMacAddress))
                 throw new ArgumentException("Target MAC address cannot be null or empty.", nameof(wolRequest.TargetMacAddress));
 
-            // Build the PowerShell script
-            var script = BuildPowerShellScript(wolRequest);
+            // Build and execute the script for a single request
+            var script = BuildPowerShellScript(new List<WakeOnLanRequest> { wolRequest });
+            await _executor.ExecuteAsync(wolRequest.ProxyRunspace, script);
+        }
 
-            try
+        public async Task SendPacketAsync(IEnumerable<WakeOnLanRequest> wolRequests)
+        {
+            if (wolRequests == null)
+                throw new ArgumentNullException(nameof(wolRequests), "WOL requests cannot be null.");
+
+            foreach (var wolRequest in wolRequests)
             {
-                // Execute the script using the provided runspace
-                await _executor.ExecuteAsync(wolRequest.ProxyRunspace, script);
+                if (string.IsNullOrWhiteSpace(wolRequest.TargetMacAddress))
+                    throw new ArgumentException("Target MAC address cannot be null or empty.", nameof(wolRequest.TargetMacAddress));
             }
-            catch (Exception ex)
+
+            // Group by runspace and process requests in batches
+            var groupedRequests = GroupRequestsByProxyRunspace(wolRequests);
+            foreach (var group in groupedRequests)
             {
-                throw new InvalidOperationException($"Failed to send the WOL packet using the proxy runspace.", ex);
+                var script = BuildPowerShellScript(group.Value);
+                await _executor.ExecuteAsync(group.Key, script);
             }
         }
 
-        private string BuildPowerShellScript(WakeOnLanRequest wolRequest)
+        private Dictionary<Runspace, List<WakeOnLanRequest>> GroupRequestsByProxyRunspace(IEnumerable<WakeOnLanRequest> wolRequests)
         {
-            return $@"
-                $UdpClient = New-Object System.Net.Sockets.UdpClient
-                $Broadcast = [System.Net.IPAddress]::Broadcast
-                $Packet = [byte[]]@({string.Join(",", MagicPacketGenerator.GeneratePacket(wolRequest.TargetMacAddress))})
-                $UdpClient.Connect($Broadcast, {wolRequest.Port})
+            var groupedRequests = new Dictionary<Runspace, List<WakeOnLanRequest>>();
+
+            foreach (var request in wolRequests)
+            {
+                if (!groupedRequests.ContainsKey(request.ProxyRunspace))
+                {
+                    groupedRequests[request.ProxyRunspace] = new List<WakeOnLanRequest>();
+                }
+
+                groupedRequests[request.ProxyRunspace].Add(request);
+            }
+
+            return groupedRequests;
+        }
+
+        private string BuildPowerShellScript(List<WakeOnLanRequest> requests)
+        {
+            var script = @"
+            $UdpClient = New-Object System.Net.Sockets.UdpClient
+            $Broadcast = [System.Net.IPAddress]::Broadcast
+        ";
+
+            foreach (var request in requests)
+            {
+                var packetBytes = MagicPacketGenerator.GeneratePacket(request.TargetMacAddress);
+                script += $@"
+                $Packet = [byte[]]@({string.Join(",", packetBytes)})
+                $UdpClient.Connect($Broadcast, {request.Port})
                 $UdpClient.Send($Packet, $Packet.Length) | Out-Null
-                $UdpClient.Close()
             ";
+            }
+
+            script += "$UdpClient.Close()";
+            return script;
         }
     }
 }
+

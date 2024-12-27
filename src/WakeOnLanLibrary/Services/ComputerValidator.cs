@@ -1,5 +1,5 @@
 using WakeOnLanLibrary.Helpers;
-using WakeOnLanLibrary.interfaces;
+using WakeOnLanLibrary.Interfaces;
 using WakeOnLanLibrary.Models;
 
 

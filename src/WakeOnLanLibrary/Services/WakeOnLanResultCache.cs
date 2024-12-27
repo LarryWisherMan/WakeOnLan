@@ -1,5 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using WakeOnLanLibrary.Models;
 
 namespace WakeOnLanLibrary.Services
@@ -13,7 +15,10 @@ namespace WakeOnLanLibrary.Services
         /// </summary>
         public void AddOrUpdate(string key, WakeOnLanReturn result)
         {
-            _results[key] = result;
+            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (result == null) throw new ArgumentNullException(nameof(result));
+
+            _results.AddOrUpdate(key, result, (_, _) => result);
         }
 
         /// <summary>
@@ -21,6 +26,7 @@ namespace WakeOnLanLibrary.Services
         /// </summary>
         public WakeOnLanReturn Get(string key)
         {
+            if (key == null) throw new ArgumentNullException(nameof(key));
             _results.TryGetValue(key, out var result);
             return result;
         }
@@ -28,9 +34,12 @@ namespace WakeOnLanLibrary.Services
         /// <summary>
         /// Retrieves all WOL results.
         /// </summary>
-        public IEnumerable<WakeOnLanReturn> GetAll()
+        public IEnumerable<WakeOnLanReturn> GetAll(bool sortDescending = false)
         {
-            return _results.Values;
+            var results = _results.Values;
+            return sortDescending
+                ? results.OrderByDescending(result => result.Timestamp)
+                : results.OrderBy(result => result.Timestamp);
         }
 
         /// <summary>
@@ -42,3 +51,4 @@ namespace WakeOnLanLibrary.Services
         }
     }
 }
+

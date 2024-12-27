@@ -6,9 +6,10 @@ using WakeOnLanLibrary.Interfaces;
 
 namespace WakeOnLanLibrary.Services
 {
-    public class RunspaceManager : IRunspaceManager
+    public class RunspaceManager : IRunspaceManager, IDisposable
     {
         private readonly ConcurrentDictionary<string, Runspace> _runspaces = new();
+        private bool _disposed;
 
         public Runspace GetOrCreateRunspace(string computerName, PSCredential credentials = null)
         {
@@ -48,6 +49,14 @@ namespace WakeOnLanLibrary.Services
             {
                 CloseRunspace(key);
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            CloseAllRunspaces();
+            _disposed = true;
         }
     }
 }

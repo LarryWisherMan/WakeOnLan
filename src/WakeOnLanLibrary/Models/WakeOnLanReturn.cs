@@ -30,9 +30,14 @@ namespace WakeOnLanLibrary.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Whether the operation was successful.
+        /// Indicates whether the WOL packet was sent successfully.
         /// </summary>
-        public bool IsSuccess { get; set; }
+        public bool RequestSent { get; set; }
+
+        /// <summary>
+        /// Indicates whether the target computer responded to pings after the WOL request.
+        /// </summary>
+        public bool WolSuccess { get; set; }
 
         /// <summary>
         /// Error message if the operation failed.
@@ -40,3 +45,4 @@ namespace WakeOnLanLibrary.Models
         public string ErrorMessage { get; set; }
     }
 }
+

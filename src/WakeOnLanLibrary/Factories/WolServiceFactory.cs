@@ -17,14 +17,20 @@ namespace WakeOnLanLibrary.Factories
             var resultCache = new WakeOnLanResultCache();
             var computerFactory = new ComputerFactory();
 
+            // Create MonitorCache and MonitorService
+            var monitorCache = new MonitorCache();
+            var monitorService = new MonitorService(monitorCache);
+
             // Create the WakeOnLanService
             return new WakeOnLanService(
                 packetSender,
                 validator,
                 computerFactory,
                 runspaceManager,
-                resultCache
+                resultCache,
+                monitorService
             );
         }
     }
+
 }

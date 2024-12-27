@@ -1,5 +1,5 @@
 using WakeOnLanLibrary.Models;
-namespace WakeOnLanLibrary.interfaces
+namespace WakeOnLanLibrary.Interfaces
 {
 
     public interface IComputerValidator
