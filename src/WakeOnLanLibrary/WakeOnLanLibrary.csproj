@@ -7,6 +7,8 @@
     <TargetFramework>net461</TargetFramework>
     <!-- Enable Nullable Reference Types (optional) -->
 	  <LangVersion>9.0</LangVersion>
+	  <DebugType>none</DebugType>
+	  <!-- Disable PDB generation -->
   </PropertyGroup>
 
 

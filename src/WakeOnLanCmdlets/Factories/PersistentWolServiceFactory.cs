@@ -1,4 +1,5 @@
-﻿using WakeOnLanLibrary.Factories;
+﻿using System;
+using WakeOnLanLibrary.Factories;
 using WakeOnLanLibrary.Services;
 
 
@@ -30,6 +31,17 @@ namespace WakeOnLanCmdlets.factories
             }
 
             return _persistentService;
+        }
+
+        /// <summary>
+        /// Static cleanup method to be used in the module's OnRemove block.
+        /// </summary>
+        public static void Cleanup()
+        {
+            var service = PersistentWolServiceFactory.GetOrCreateService();
+            service.ClearRunspaces();
+
+            Console.WriteLine("All runspaces have been cleared successfully.");
         }
     }
 }
