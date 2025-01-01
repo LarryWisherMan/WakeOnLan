@@ -12,7 +12,7 @@ public class GetWakeOnLanMonitorLogCmdlet : BaseCmdlet
         base.ProcessRecord();
 
         // Retrieve monitor log entries from the PersistentWolService's MonitorCache
-        var monitorEntries = WolService.MonitorCache.GetAllEntries();
+        var monitorEntries = WolService.MonitorCache.GetAll();
 
         // Output monitor entries
         WriteObject(monitorEntries, enumerateCollection: true);

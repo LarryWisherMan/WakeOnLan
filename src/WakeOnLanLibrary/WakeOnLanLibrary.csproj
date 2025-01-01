@@ -1,22 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <!-- Specify the output type as a library -->
-    <OutputType>Library</OutputType>
-    <!-- Target the .NET Framework compatible with PowerShell 5.1 -->
-    <TargetFramework>net461</TargetFramework>
-    <!-- Enable Nullable Reference Types (optional) -->
-	  <LangVersion>9.0</LangVersion>
-	  <DebugType>none</DebugType>
-	  <!-- Disable PDB generation -->
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFramework>net472</TargetFramework>
+		<LangVersion>9.0</LangVersion>
+		<DebugType>none</DebugType>
+		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0">
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0">
+		</PackageReference>
+		<PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0">
+			<ExcludeAssets>runtime</ExcludeAssets>
+		</PackageReference>
+		<PackageReference Include="System.ValueTuple" Version="4.5.0">
+		</PackageReference>
+	</ItemGroup>
 
+	<ItemGroup>
+		<None Update="System.*.dll">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+		<None Update="Microsoft.Win32.*.dll">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <!-- Reference the Microsoft.PowerShell.5.ReferenceAssemblies NuGet package -->
-    <PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
-  </ItemGroup>
-
+	<Target Name="RemoveExtraAssemblies" AfterTargets="Build">
+		<ItemGroup>
+			<ExtraAssemblies Include="$(OutputPath)\System.*.dll" />
+		</ItemGroup>
+		<Delete Files="@(ExtraAssemblies)" />
+	</Target>
 </Project>
+
