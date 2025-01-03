@@ -11,11 +11,17 @@ steps:
 - checkout: self
   fetchDepth: 0
 
+# Checkout with full history
+- checkout: self
+  fetchDepth: 0
+
+# Set up .NET SDK
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
     version: '7.x'
 
+# Restore NuGet packages
 - task: NuGetCommand@2
   inputs:
     command: 'restore'
@@ -29,10 +35,21 @@ steps:
 
 - task: gitversion/execute@3
   displayName: 'Run GitVersion'
+# GitVersion setup and execution
+- task: gitversion/setup@3
+  displayName: 'Setup GitVersion'
+  inputs:
+    versionSpec: '5.10.3' # Specify a compatible version
+
+- task: gitversion/execute@3
+  displayName: 'Run GitVersion'
   inputs:
     configFilePath: 'gitversion.yml'
     updateAssemblyInfo: true
+    configFilePath: 'gitversion.yml' # Use custom GitVersion configuration
+    updateAssemblyInfo: true        # Automatically update assembly info
 
+# Extract GitVersion variables
 - script: |
     echo ##vso[task.setvariable variable=GitVersion.FullSemVer]$(GitVersion.FullSemVer)
   displayName: 'Extract GitVersion Variables'
