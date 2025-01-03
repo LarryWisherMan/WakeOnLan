@@ -1,0 +1,40 @@
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/*.sln'
+  buildConfiguration: 'Release'
+  outputPath: 'ModuleOutput/LWM.WakeOnLan/bin'
+
+steps:
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '7.x'
+
+- task: NuGetCommand@2
+  inputs:
+    command: 'restore'
+    restoreSolution: $(solution)
+
+- task: GitVersion@5
+  displayName: 'Determine Version'
+  inputs:
+    runtime: 'core'
+    configFilePath: 'gitversion.yml' # Custom configuration file
+    updateAssemblyInfo: true
+
+- script: |
+    echo ##vso[task.setvariable variable=GitVersion.FullSemVer]$(GitVersion.FullSemVer)
+  displayName: 'Extract GitVersion Variables'
+
+- task: VSBuild@1
+  inputs:
+    solution: '$(solution)'
+    msbuildArgs: '/p:Configuration=$(buildConfiguration) /p:OutputPath=$(outputPath) /p:Version=$(GitVersion.FullSemVer)'
+    platform: '$(buildConfiguration)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: $(outputPath)
+    ArtifactName: 'Module'
