@@ -7,11 +7,17 @@ variables:
   outputPath: 'ModuleOutput/LWM.WakeOnLan/bin'
 
 steps:
+# Checkout with full history
+- checkout: self
+  fetchDepth: 0
+
+# Set up .NET SDK
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
     version: '7.x'
 
+# Restore NuGet packages
 - task: NuGetCommand@2
   inputs:
     command: 'restore'
@@ -29,6 +35,7 @@ steps:
     configFilePath: 'gitversion.yml' # Use custom GitVersion configuration
     updateAssemblyInfo: true        # Automatically update assembly info
 
+# Extract GitVersion variables
 - script: |
     echo ##vso[task.setvariable variable=GitVersion.FullSemVer]$(GitVersion.FullSemVer)
   displayName: 'Extract GitVersion Variables'
