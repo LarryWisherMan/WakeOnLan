@@ -4,18 +4,20 @@ pool:
 variables:
   solution: '**/*.sln'
   buildConfiguration: 'Release'
-  buildPlatform: 'Any CPU' # Specify a valid platform
-  outputPath: 'ModuleOutput/LWM.WakeOnLan/bin'
+  buildPlatform: 'Any CPU'
+  outputDirectory: '$(System.DefaultWorkingDirectory)/ModuleOutput/LWM.WakeOnLan'
 
 steps:
 - checkout: self
   fetchDepth: 0
 
+# Set up .NET SDK
 - task: UseDotNet@2
   inputs:
     packageType: 'sdk'
     version: '7.x'
 
+# Restore NuGet packages
 - task: NuGetCommand@2
   inputs:
     command: 'restore'
@@ -33,20 +35,16 @@ steps:
     configFilePath: 'gitversion.yml'
     updateAssemblyInfo: true
 
-- script: |
-    echo ##vso[task.setvariable variable=GitVersion.FullSemVer]$(GitVersion.FullSemVer)
-  displayName: 'Extract GitVersion Variables'
-
-# Build the solution using GitVersion versioning
+# Build the solution
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
-    msbuildArgs: '/p:Configuration=$(buildConfiguration) /p:OutputPath=$(outputPath) /p:Version=$(GitVersion.FullSemVer)'
+    msbuildArgs: '/p:Configuration=$(buildConfiguration) /p:OutputPath=$(outputDirectory)/bin /p:Version=$(GitVersion.FullSemVer)'
     configuration: '$(buildConfiguration)'
     platform: '$(buildPlatform)'
 
-# Publish artifacts
+# Publish the entire ModuleOutput/LWM.WakeOnLan directory
 - task: PublishBuildArtifacts@1
   inputs:
-    PathtoPublish: $(outputPath)
-    ArtifactName: 'Module'
+    PathtoPublish: '$(outputDirectory)'
+    ArtifactName: 'WakeOnLanModule'
