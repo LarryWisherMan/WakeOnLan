@@ -1,6 +1,3 @@
-trigger:
-- main
-
 pool:
   vmImage: 'windows-latest'
 
@@ -23,6 +20,8 @@ steps:
 # GitVersion setup and usage
 - task: gitversion/setup@3
   displayName: 'Setup GitVersion'
+  inputs:
+    versionSpec: '5.10.3' # Specify a compatible version
 
 - script: gitversion /config gitversion.yml
   displayName: 'Run GitVersion'
