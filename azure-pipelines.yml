@@ -17,15 +17,17 @@ steps:
     command: 'restore'
     restoreSolution: $(solution)
 
-# GitVersion setup and usage
+# GitVersion setup and execution
 - task: gitversion/setup@3
   displayName: 'Setup GitVersion'
   inputs:
     versionSpec: '5.10.3' # Specify a compatible version
 
-- script: gitversion /config gitversion.yml
+- task: gitversion/execute@3
   displayName: 'Run GitVersion'
-  continueOnError: false
+  inputs:
+    configFilePath: 'gitversion.yml' # Use custom GitVersion configuration
+    updateAssemblyInfo: true        # Automatically update assembly info
 
 - script: |
     echo ##vso[task.setvariable variable=GitVersion.FullSemVer]$(GitVersion.FullSemVer)
