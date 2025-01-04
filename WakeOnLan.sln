@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WakeOnLanLibrary", "WakeOnLanLibrary\WakeOnLanLibrary.csproj", "{DF8AAF07-B856-45D4-92CE-67B4BAD34ECB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WakeOnLanLibrary", "src\WakeOnLanLibrary\WakeOnLanLibrary.csproj", "{DF8AAF07-B856-45D4-92CE-67B4BAD34ECB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WakeOnLanCmdlets", "WakeOnLanCmdlets\WakeOnLanCmdlets.csproj", "{DB23DF0A-1315-4F9C-BE1A-A4F7EA47EEE8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WakeOnLanCmdlets", "src\WakeOnLanCmdlets\WakeOnLanCmdlets.csproj", "{DB23DF0A-1315-4F9C-BE1A-A4F7EA47EEE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
