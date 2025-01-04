@@ -40,14 +40,17 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
             MockRunspaceManager = new Mock<IRunspaceManager>();
             MockRequestQueue = new Mock<IRequestQueue>();
             MockMonitorService = new Mock<IMonitorService>();
-            MockMonitorCache = new Mock<ICache<string, MonitorEntry>>();
-            MockResultCache = new Mock<ICache<string, WakeOnLanReturn>>();
+
+
         }
 
         private void InitializeCaches()
         {
-            MonitorCache = new MonitorCache(MockMonitorCache.Object);
-            ResultCache = new WakeOnLanResultCache(MockResultCache.Object);
+            // Use real instances of caches with in-memory implementations
+            var monitorCacheImplementation = new Cache<string, MonitorEntry>();
+            var resultCacheImplementation = new Cache<string, WakeOnLanReturn>();
+            MonitorCache = new MonitorCache(monitorCacheImplementation);
+            ResultCache = new WakeOnLanResultCache(resultCacheImplementation);
         }
 
         private void InitializeService()
@@ -62,6 +65,12 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 MockMonitorService.Object,
                 MonitorCache
             );
+        }
+
+        public void ClearCaches()
+        {
+            MonitorCache.Clear();
+            ResultCache.Clear();
         }
     }
 }
