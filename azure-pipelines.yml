@@ -1,50 +1,57 @@
-pool:
-  vmImage: 'windows-latest'
-
+# Define variables and reference the variable group
 variables:
-  solution: '**/*.sln'
-  buildConfiguration: 'Release'
-  buildPlatform: 'Any CPU'
-  outputDirectory: '$(System.DefaultWorkingDirectory)/ModuleOutput/LWM.WakeOnLan'
+  - group: GitHubSecrets # This references the variable group
+  - name: buildFolderName
+    value: output
+  - name: buildArtifactName
+    value: output
+  - name: testResultFolderName
+    value: testResults
+  - name: defaultBranch
+    value: main
+  - name: Agent.Source.Git.ShallowFetchDepth
+    value: 0 # override ShallowFetchDepth
 
-steps:
-- checkout: self
-  fetchDepth: 0
 
-# Set up .NET SDK
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '7.x'
+stages:
+  - stage: Build
+    jobs:
+      - job: Package_Module
+        displayName: 'Package Module'
+        pool:
+          vmImage: 'windows-latest'
+        steps:
 
-# Restore NuGet packages
-- task: NuGetCommand@2
-  inputs:
-    command: 'restore'
-    restoreSolution: $(solution)
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK 8.0'
+            inputs:
+              packageType: 'sdk'
+              version: '8.0.x'
 
-# GitVersion setup and execution
-- task: gitversion/setup@3
-  displayName: 'Setup GitVersion'
-  inputs:
-    versionSpec: '5.10.3'
+          - pwsh: |
+              dotnet tool install --global GitVersion.Tool --version 5.*
+              $gitVersionObject = dotnet-gitversion | ConvertFrom-Json
+              $gitVersionObject.PSObject.Properties.ForEach{
+                  Write-Host -Object "Setting Task Variable '$($_.Name)' with value '$($_.Value)'."
+                  Write-Host -Object "##vso[task.setvariable variable=$($_.Name);]$($_.Value)"
+              }
+              Write-Host -Object "##vso[build.updatebuildnumber]$($gitVersionObject.FullSemVer)"
+            displayName: Calculate ModuleVersion (GitVersion)
 
-- task: gitversion/execute@3
-  displayName: 'Run GitVersion'
-  inputs:
-    configFilePath: 'gitversion.yml'
-    updateAssemblyInfo: true
+          - task: PowerShell@2
+            name: package
+            displayName: 'Build & Package Module'
+            inputs:
+              filePath: './build.ps1'
+              arguments: '-ResolveDependency -tasks pack'
+              pwsh: true
+            env:
+              ModuleVersion: $(NuGetVersionV2)
 
-# Build the solution
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:Configuration=$(buildConfiguration) /p:OutputPath=$(outputDirectory)/bin /p:Version=$(GitVersion.FullSemVer)'
-    configuration: '$(buildConfiguration)'
-    platform: '$(buildPlatform)'
-
-# Publish the entire ModuleOutput/LWM.WakeOnLan directory
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(outputDirectory)'
-    ArtifactName: 'WakeOnLanModule'
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Build Artifact'
+            inputs:
+              targetPath: '$(buildFolderName)/'
+              artifact: $(buildArtifactName)
+              publishLocation: 'pipeline'
+              parallel: true

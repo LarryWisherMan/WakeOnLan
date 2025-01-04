@@ -5,6 +5,8 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 		<DebugType>none</DebugType>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
 		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 

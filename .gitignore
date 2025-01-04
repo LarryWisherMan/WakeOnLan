@@ -4,6 +4,8 @@
 *.user
 *.userosscache
 *.sln.docstates
+output/
+
 
 # User-specific folders
 .vscode/
@@ -45,3 +47,4 @@ artifacts/
 # Dependency folders
 packages/
 node_modules/
+ModuleOutput/

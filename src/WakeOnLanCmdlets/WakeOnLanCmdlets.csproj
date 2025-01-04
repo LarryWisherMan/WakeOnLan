@@ -6,10 +6,10 @@
 		<RootNamespace>WakeOnLanCmdlets</RootNamespace>
 		<OutputType>Library</OutputType>
 		<DebugType>none</DebugType>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
 		<LangVersion>latest</LangVersion>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<OutputPath>..\..\ModuleOutput\LWM.WakeOnLan\bin</OutputPath>
 		<!-- Allow dependencies to be copied -->
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
@@ -33,15 +33,6 @@
 	<ItemGroup>
 		<!-- Reference the library project -->
 		<ProjectReference Include="..\WakeOnLanLibrary\WakeOnLanLibrary.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- Include the module manifest -->
-		<None Include="LWM.WakeOnLan.psd1">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<CopyToPublishDirectory>true</CopyToPublishDirectory>
-			<TargetPath>..\LWM.WakeOnLan.psd1</TargetPath>
-		</None>
 	</ItemGroup>
 
 	<Target Name="CleanUnnecessaryFiles" AfterTargets="Build">
