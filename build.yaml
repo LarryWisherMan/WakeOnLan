@@ -27,6 +27,10 @@ BuildWorkflow:
     - build
     - package_module_nupkg
 
+  publish:
+    - Publish_Release_To_GitHub # Runs first, if token is expired it will fail early
+    - publish_module_to_gallery
+
 RequiredModulesDirectory: output/RequiredModules
 
 
@@ -34,7 +38,8 @@ RequiredModulesDirectory: output/RequiredModules
 ModuleBuildTasks:
   Sampler:
     - "*.build.Sampler.ib.tasks"
-
+  Sampler.GitHubTasks:
+    - "*.ib.tasks"
 
 TaskHeader: |
   param($Path)
