@@ -13,7 +13,6 @@ namespace WakeOnLanLibrary.Application.Services
         private readonly WakeOnLanConfiguration _config;
         private readonly IProxyRequestProcessor _proxyRequestProcessor;
         private readonly IResultManager _resultManager;
-        private readonly IRunspaceManager _runspaceManager;
         private readonly IRequestScheduler _requestScheduler;
         private readonly IMonitoringManager _monitoringManager;
         private readonly ITaskRunner _taskRunner;
@@ -22,7 +21,6 @@ namespace WakeOnLanLibrary.Application.Services
         public WakeOnLanService(
             IProxyRequestProcessor proxyRequestProcessor,
             IResultManager resultManager,
-            IRunspaceManager runspaceManager,
             IRequestScheduler requestScheduler,
             IMonitoringManager monitoringManager,
             ITaskRunner taskRunner,
@@ -31,12 +29,19 @@ namespace WakeOnLanLibrary.Application.Services
         {
             _proxyRequestProcessor = proxyRequestProcessor ?? throw new ArgumentNullException(nameof(proxyRequestProcessor));
             _resultManager = resultManager ?? throw new ArgumentNullException(nameof(resultManager));
-            _runspaceManager = runspaceManager ?? throw new ArgumentNullException(nameof(runspaceManager));
             _requestScheduler = requestScheduler ?? throw new ArgumentNullException(nameof(requestScheduler));
             _monitoringManager = monitoringManager ?? throw new ArgumentNullException(nameof(monitoringManager));
             _taskRunner = taskRunner ?? throw new ArgumentNullException(nameof(taskRunner));
             _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
 
+
+            // Subscribe to the MonitoringCompleted event
+            _monitoringManager.MonitoringCompleted += OnMonitoringCompleted;
+        }
+
+        private void OnMonitoringCompleted(string computerName, bool success, string errorMessage)
+        {
+            _resultManager.UpdateMonitoringResult(computerName, success, errorMessage);
         }
 
         public async Task<IEnumerable<WakeOnLanReturn>> WakeUpAndMonitorAsync(
@@ -88,18 +93,13 @@ namespace WakeOnLanLibrary.Application.Services
                 {
                     try
                     {
-                        var runspacePool = _runspaceManager.GetOrCreateRunspacePool(
-                            proxyComputerName,
-                            credential,
-                            parameters.MinRunspaces,
-                            parameters.MaxRunspaces);
-
                         await _proxyRequestProcessor.ProcessProxyRequestsAsync(
                             proxyComputerName,
                             targets,
                             parameters.ResolvedPort,
                             credential,
-                            runspacePool,
+                            parameters.MinRunspaces,
+                            parameters.MaxRunspaces,
                             parameters.ResolvedMaxPingAttempts,
                             parameters.ResolvedTimeout);
                     }
@@ -109,7 +109,7 @@ namespace WakeOnLanLibrary.Application.Services
                             proxyComputerName,
                             targets,
                             parameters.ResolvedPort,
-                            $"Runspace pool creation failed: {ex.Message}");
+                            $"{ex.Message}");
                     }
                 });
             }
