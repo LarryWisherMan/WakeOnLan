@@ -9,6 +9,7 @@ namespace WakeOnLanCmdlets.Base
     public abstract class BaseCmdlet : PSCmdlet
     {
         protected IWakeOnLanService WolService { get; private set; }
+        protected IServiceProvider ServiceProvider { get; private set; }
 
         protected override void BeginProcessing()
         {
@@ -16,8 +17,15 @@ namespace WakeOnLanCmdlets.Base
 
             try
             {
-                // Retrieve the Wake-on-LAN service from the container
-                WolService = ServiceContainer.Instance.GetService<IWakeOnLanService>();
+                // Retrieve the service provider
+                ServiceProvider = ServiceContainer.Instance.GetService<IServiceProvider>();
+                if (ServiceProvider == null)
+                {
+                    throw new InvalidOperationException("The service provider is not registered.");
+                }
+
+                // Retrieve the Wake-on-LAN service
+                WolService = ServiceProvider.GetService<IWakeOnLanService>();
                 if (WolService == null)
                 {
                     throw new InvalidOperationException("The Wake-on-LAN service is not registered.");
@@ -36,6 +44,22 @@ namespace WakeOnLanCmdlets.Base
                 // Prevent further processing
                 StopProcessing();
             }
+        }
+
+        /// <summary>
+        /// Resolves a service of the specified type from the service provider.
+        /// </summary>
+        /// <typeparam name="T">The type of service to resolve.</typeparam>
+        /// <returns>The resolved service instance.</returns>
+        protected T ResolveService<T>() where T : class
+        {
+            var service = ServiceProvider.GetService<T>();
+            if (service == null)
+            {
+                throw new InvalidOperationException($"The service of type {typeof(T).Name} is not registered.");
+            }
+
+            return service;
         }
     }
 }
