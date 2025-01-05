@@ -22,14 +22,6 @@ namespace WakeOnLanLibrary.Application.Interfaces
             PSCredential credential = null,
             int? maxPingAttempts = null,
             int? timeoutInSeconds = null);
-
-        /// <summary>
-        /// Updates the monitoring result for a specific computer.
-        /// </summary>
-        /// <param name="computerName">The name of the computer.</param>
-        /// <param name="success">Indicates whether the operation was successful.</param>
-        /// <param name="errorMessage">An optional error message.</param>
-        void UpdateMonitoringResult(string computerName, bool success, string errorMessage = null);
     }
 }
 

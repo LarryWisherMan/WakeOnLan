@@ -5,7 +5,6 @@ using System.Management.Automation;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Models;
-using WakeOnLanLibrary.Core.UseCases;
 
 namespace WakeOnLanLibrary.Application.Services
 {
@@ -16,7 +15,7 @@ namespace WakeOnLanLibrary.Application.Services
         private readonly IResultManager _resultManager;
         private readonly IRunspaceManager _runspaceManager;
         private readonly IRequestScheduler _requestScheduler;
-        private readonly IMonitorService _monitorService;
+        private readonly IMonitoringManager _monitoringManager;
         private readonly ITaskRunner _taskRunner;
 
 
@@ -25,7 +24,7 @@ namespace WakeOnLanLibrary.Application.Services
             IResultManager resultManager,
             IRunspaceManager runspaceManager,
             IRequestScheduler requestScheduler,
-            IMonitorService monitorService,
+            IMonitoringManager monitoringManager,
             ITaskRunner taskRunner,
             IOptions<WakeOnLanConfiguration> config)
 
@@ -34,11 +33,10 @@ namespace WakeOnLanLibrary.Application.Services
             _resultManager = resultManager ?? throw new ArgumentNullException(nameof(resultManager));
             _runspaceManager = runspaceManager ?? throw new ArgumentNullException(nameof(runspaceManager));
             _requestScheduler = requestScheduler ?? throw new ArgumentNullException(nameof(requestScheduler));
-            _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+            _monitoringManager = monitoringManager ?? throw new ArgumentNullException(nameof(monitoringManager));
             _taskRunner = taskRunner ?? throw new ArgumentNullException(nameof(taskRunner));
             _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
 
-            _monitorService.MonitoringCompleted += UpdateMonitoringResult;
         }
 
         public async Task<IEnumerable<WakeOnLanReturn>> WakeUpAndMonitorAsync(
@@ -89,14 +87,9 @@ namespace WakeOnLanLibrary.Application.Services
             await _requestScheduler.ExecuteScheduledTasksAsync();
 
             // Start monitoring asynchronously
-            _taskRunner.Run(() => _monitorService.StartMonitoringAsync(resolvedMaxPingAttempts, resolvedTimeout));
+            _taskRunner.Run(() => _monitoringManager.StartMonitoringAsync(resolvedMaxPingAttempts, resolvedTimeout));
 
             return _resultManager.GetAllResults();
-        }
-
-        public void UpdateMonitoringResult(string computerName, bool success, string errorMessage = null)
-        {
-            _resultManager.UpdateMonitoringResult(computerName, success, errorMessage);
         }
     }
 }

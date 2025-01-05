@@ -85,6 +85,13 @@ namespace WakeOnLanLibrary.Shared.Extensions
                 return monitorService;
             });
 
+            // Register MonitoringManager
+            services.AddSingleton<IMonitoringManager, MonitoringManager>(provider =>
+            {
+                var monitorService = provider.GetRequiredService<IMonitorService>();
+                return new MonitoringManager(monitorService);
+            });
+
             return services;
         }
 
