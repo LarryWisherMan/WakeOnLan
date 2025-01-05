@@ -54,6 +54,13 @@ namespace WakeOnLanLibrary.Shared.Extensions
             services.AddSingleton<IMonitorCache, MonitorCache>();
             services.AddSingleton<IWakeOnLanResultCache, WakeOnLanResultCache>();
 
+            // Register ResultManager
+            services.AddSingleton<IResultManager>(provider =>
+            {
+                var resultCache = provider.GetRequiredService<IWakeOnLanResultCache>();
+                return new ResultManager(resultCache);
+            });
+
             return services;
         }
 
@@ -112,11 +119,12 @@ namespace WakeOnLanLibrary.Shared.Extensions
             // Register Remote PowerShell Executor
             services.AddSingleton<IRemotePowerShellExecutor, RemotePowerShellExecutor>();
 
+
+
+
             // Register Proxy Request Processor
             services.AddSingleton<IProxyRequestProcessor, ProxyRequestProcessor>();
 
-            // Register Result Manager
-            services.AddSingleton<IResultManager, ResultManager>();
 
             // Register Other Services
             services.AddSingleton<IMagicPacketSender, ProxyMagicPacketSender>();
