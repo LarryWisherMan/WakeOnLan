@@ -7,6 +7,7 @@ namespace WakeOnLanLibrary.Application.Interfaces
 {
     public interface IWakeOnLanService
     {
+
         /// <summary>
         /// Sends multiple Wake-on-LAN requests and adds them to the monitoring process.
         /// </summary>

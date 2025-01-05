@@ -1,5 +1,8 @@
-﻿using System.Management.Automation;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Management.Automation;
 using WakeOnLanCmdlets.Base;
+using WakeOnLanLibrary.Application.Interfaces;
 
 [Cmdlet(VerbsCommon.Get, "WakeOnLanResults")]
 public class GetWakeOnLanResultsCmdlet : BaseCmdlet
@@ -11,8 +14,21 @@ public class GetWakeOnLanResultsCmdlet : BaseCmdlet
     {
         base.ProcessRecord();
 
-        // Retrieve results from the PersistentWolService's ResultCache
-        var results = WolService.ResultCache.GetAll();
+        // Resolve IResultManager from the service provider
+        var resultManager = ServiceProvider.GetService<IWakeOnLanResultCache>();
+
+        if (resultManager == null)
+        {
+            WriteError(new ErrorRecord(
+                new InvalidOperationException("Unable to resolve IResultManager."),
+                "ResultManagerResolutionFailed",
+                ErrorCategory.InvalidOperation,
+                null));
+            return;
+        }
+
+        // Retrieve results
+        var results = resultManager.GetAll();
 
         // Output results
         WriteObject(results, enumerateCollection: true);
@@ -20,7 +36,8 @@ public class GetWakeOnLanResultsCmdlet : BaseCmdlet
         // Clear results if the switch is specified
         if (ClearAfterRetrieval.IsPresent)
         {
-            WolService.ResultCache.Clear();
+            resultManager.Clear();
         }
     }
 }
+

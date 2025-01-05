@@ -12,9 +12,9 @@ using System;
 using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("WakeOnLanLibrary")]
-[assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
+[assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3def4ea94479e4a21271b7549878e25c4be7a676")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5c8466cdee9d2b537e38fb88a6102cc067c53e62")]
 [assembly: System.Reflection.AssemblyProductAttribute("WakeOnLanLibrary")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WakeOnLanLibrary")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,5 +1,8 @@
-﻿using System.Management.Automation;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Management.Automation;
 using WakeOnLanCmdlets.Base;
+using WakeOnLanLibrary.Application.Interfaces;
 
 [Cmdlet(VerbsCommon.Get, "WakeOnLanMonitorLog")]
 public class GetWakeOnLanMonitorLogCmdlet : BaseCmdlet
@@ -11,8 +14,21 @@ public class GetWakeOnLanMonitorLogCmdlet : BaseCmdlet
     {
         base.ProcessRecord();
 
-        // Retrieve monitor log entries from the PersistentWolService's MonitorCache
-        var monitorEntries = WolService.MonitorCache.GetAll();
+        // Resolve IResultManager from the service provider
+        var resultManager = ServiceProvider.GetService<IMonitorCache>();
+
+        if (resultManager == null)
+        {
+            WriteError(new ErrorRecord(
+                new InvalidOperationException("Unable to resolve IResultManager."),
+                "ResultManagerResolutionFailed",
+                ErrorCategory.InvalidOperation,
+                null));
+            return;
+        }
+
+        // Retrieve monitor log entries
+        var monitorEntries = resultManager.GetAll();
 
         // Output monitor entries
         WriteObject(monitorEntries, enumerateCollection: true);
@@ -20,7 +36,7 @@ public class GetWakeOnLanMonitorLogCmdlet : BaseCmdlet
         // Clear monitor cache if the switch is specified
         if (ClearAfterRetrieval.IsPresent)
         {
-            WolService.MonitorCache.Clear();
+            resultManager.Clear();
         }
     }
 }

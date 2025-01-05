@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Models;
-using WakeOnLanLibrary.Infrastructure.Caching;
 
 namespace WakeOnLanLibrary.Application.Services
 {
     public class ResultManager : IResultManager
     {
-        private readonly WakeOnLanResultCache _resultCache;
+        private readonly IWakeOnLanResultCache _resultCache;
 
-        public ResultManager(WakeOnLanResultCache resultCache)
+        public ResultManager(IWakeOnLanResultCache resultCache)
         {
             _resultCache = resultCache ?? throw new ArgumentNullException(nameof(resultCache));
         }
