@@ -48,3 +48,5 @@ artifacts/
 packages/
 node_modules/
 ModuleOutput/
+
+**/AssemblyInfo.cs
