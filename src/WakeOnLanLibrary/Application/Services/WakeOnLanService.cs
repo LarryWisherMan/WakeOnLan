@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
@@ -10,35 +11,50 @@ namespace WakeOnLanLibrary.Application.Services
 {
     public class WakeOnLanService : IWakeOnLanService
     {
+        private readonly WakeOnLanConfiguration _config;
         private readonly IProxyRequestProcessor _proxyRequestProcessor;
         private readonly IResultManager _resultManager;
         private readonly IRunspaceManager _runspaceManager;
         private readonly IRequestQueue _requestQueue;
         private readonly IMonitorService _monitorService;
 
+
         public WakeOnLanService(
             IProxyRequestProcessor proxyRequestProcessor,
             IResultManager resultManager,
             IRunspaceManager runspaceManager,
             IRequestQueue requestQueue,
-            IMonitorService monitorService)
+            IMonitorService monitorService,
+            IOptions<WakeOnLanConfiguration> config)
+
         {
             _proxyRequestProcessor = proxyRequestProcessor ?? throw new ArgumentNullException(nameof(proxyRequestProcessor));
             _resultManager = resultManager ?? throw new ArgumentNullException(nameof(resultManager));
             _runspaceManager = runspaceManager ?? throw new ArgumentNullException(nameof(runspaceManager));
             _requestQueue = requestQueue ?? throw new ArgumentNullException(nameof(requestQueue));
             _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+            _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
 
             _monitorService.MonitoringCompleted += UpdateMonitoringResult;
         }
 
         public async Task<IEnumerable<WakeOnLanReturn>> WakeUpAndMonitorAsync(
             Dictionary<string, List<(string MacAddress, string ComputerName)>> proxyToTargets,
-            int port = 9,
+            int? port = null,
             PSCredential credential = null,
-            int maxPingAttempts = 5,
-            int timeoutInSeconds = 60)
+            int? maxPingAttempts = null,
+            int? timeoutInSeconds = null)
+
         {
+
+            int resolvedPort = port ?? _config.DefaultPort;
+            int resolvedMaxPingAttempts = maxPingAttempts ?? _config.MaxPingAttempts;
+            int resolvedTimeout = timeoutInSeconds ?? _config.DefaultTimeoutInSeconds;
+
+            int minRunspaces = _config.RunspacePoolMinThreads;
+            int maxRunspaces = _config.RunspacePoolMaxThreads;
+
+
             foreach (var proxyEntry in proxyToTargets)
             {
                 var proxyComputerName = proxyEntry.Key;
@@ -49,19 +65,19 @@ namespace WakeOnLanLibrary.Application.Services
                 {
                     try
                     {
-                        var runspacePool = _runspaceManager.GetOrCreateRunspacePool(proxyComputerName, credential, 1, 5);
+                        var runspacePool = _runspaceManager.GetOrCreateRunspacePool(proxyComputerName, credential, minRunspaces, maxRunspaces);
                         await _proxyRequestProcessor.ProcessProxyRequestsAsync(
                             proxyComputerName,
                             targets,
-                            port,
+                            resolvedPort,
                             credential,
                             runspacePool,
-                            maxPingAttempts,
-                            timeoutInSeconds);
+                            resolvedMaxPingAttempts,
+                            resolvedTimeout);
                     }
                     catch (Exception ex)
                     {
-                        _resultManager.AddFailureResults(proxyComputerName, targets, port, $"Runspace pool creation failed: {ex.Message}");
+                        _resultManager.AddFailureResults(proxyComputerName, targets, resolvedPort, $"Runspace pool creation failed: {ex.Message}");
                     }
                 });
             }
@@ -70,7 +86,7 @@ namespace WakeOnLanLibrary.Application.Services
             await _requestQueue.ProcessQueueAsync();
 
             // Start monitoring asynchronously
-            _ = Task.Run(() => _monitorService.StartMonitoringAsync(maxPingAttempts, timeoutInSeconds));
+            _ = Task.Run(() => _monitorService.StartMonitoringAsync(resolvedMaxPingAttempts, resolvedTimeout));
 
             return _resultManager.GetAllResults();
         }
