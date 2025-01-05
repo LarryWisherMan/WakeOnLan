@@ -116,6 +116,8 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
         public static IServiceCollection AddWakeOnLanServices(this IServiceCollection services)
         {
+            //Add Task Runner
+            services.AddSingleton<ITaskRunner, TaskRunner>();
 
             //Set Config Options
             services.AddConfigOptions();
