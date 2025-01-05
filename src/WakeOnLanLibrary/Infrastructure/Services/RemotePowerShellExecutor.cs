@@ -4,6 +4,8 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
+using WakeOnLanLibrary.Core.Extensions;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Infrastructure.Services
 {
@@ -12,7 +14,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
         /// <summary>
         /// Executes a PowerShell script asynchronously using a RunspacePool.
         /// </summary>
-        public async Task ExecuteAsync(RunspacePool runspacePool, string script)
+        public async Task ExecuteAsync(IRunspacePool runspacePool, string script)
         {
             if (runspacePool == null)
                 throw new ArgumentNullException(nameof(runspacePool), "RunspacePool cannot be null.");
@@ -26,7 +28,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
 
             // Create a new PowerShell instance
             using var powerShell = PowerShell.Create();
-            powerShell.RunspacePool = runspacePool;
+            powerShell.RunspacePool = runspacePool.GetInternalRunspacePool();
             powerShell.AddScript(script);
 
             try
@@ -49,7 +51,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
         /// <summary>
         /// Executes a PowerShell script asynchronously using a RunspacePool and returns the results.
         /// </summary>
-        public async Task<IEnumerable<PSObject>> ExecuteWithResultsAsync(RunspacePool runspacePool, string script)
+        public async Task<IEnumerable<PSObject>> ExecuteWithResultsAsync(IRunspacePool runspacePool, string script)
         {
             if (runspacePool == null)
                 throw new ArgumentNullException(nameof(runspacePool), "RunspacePool cannot be null.");
@@ -63,7 +65,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
 
             // Create a new PowerShell instance
             using var powerShell = PowerShell.Create();
-            powerShell.RunspacePool = runspacePool;
+            powerShell.RunspacePool = runspacePool.GetInternalRunspacePool();
             powerShell.AddScript(script);
 
             try

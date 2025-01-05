@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Core.Entities;
-using WakeOnLanLibrary.Infrastructure.Caching;
 using WakeOnLanLibrary.Infrastructure.Monitoring;
 
 namespace WakeOnLanLibrary.Core.UseCases
@@ -11,7 +11,7 @@ namespace WakeOnLanLibrary.Core.UseCases
 
     public class MonitorService : IMonitorService
     {
-        private readonly MonitorCache _monitorCache;
+        private readonly IMonitorCache _monitorCache;
         private readonly IMonitorTask _monitorTask;
         private readonly SemaphoreSlim _throttle;
         private readonly int _intervalInSeconds;
@@ -19,7 +19,7 @@ namespace WakeOnLanLibrary.Core.UseCases
         public event Action<string, bool, string> MonitoringCompleted;
 
         public MonitorService(
-            MonitorCache monitorCache,
+            IMonitorCache monitorCache,
             IMonitorTask monitorTask,
             int maxConcurrentTasks = 5,
             int intervalInSeconds = 10)

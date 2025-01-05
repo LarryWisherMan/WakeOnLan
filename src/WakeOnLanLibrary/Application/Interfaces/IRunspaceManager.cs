@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Application.Interfaces
 {
@@ -22,7 +23,7 @@ namespace WakeOnLanLibrary.Application.Interfaces
         /// <param name="minRunspaces">The minimum number of runspaces in the pool.</param>
         /// <param name="maxRunspaces">The maximum number of runspaces in the pool.</param>
         /// <returns>A <see cref="RunspacePool"/> instance.</returns>
-        RunspacePool GetOrCreateRunspacePool(string computerName, PSCredential credentials, int minRunspaces, int maxRunspaces);
+        IRunspacePool GetOrCreateRunspacePool(string computerName, PSCredential credentials, int minRunspaces, int maxRunspaces);
 
         /// <summary>
         /// Closes and disposes a specific runspace for a computer.

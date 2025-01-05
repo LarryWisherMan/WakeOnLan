@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Management.Automation.Runspaces;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Application.Models
 {
@@ -23,7 +23,7 @@ namespace WakeOnLanLibrary.Application.Models
         /// <summary>
         /// The RunspacePool associated with the proxy computer.
         /// </summary>
-        public RunspacePool ProxyRunspacePool { get; set; }
+        public IRunspacePool ProxyRunspacePool { get; set; }
 
         /// <summary>
         /// Timestamp indicating when the request was created.

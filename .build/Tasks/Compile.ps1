@@ -58,7 +58,7 @@ task compile {
 
     $null = dotnet-gitversion /updateassemblyinfo
 
-    dotnet build "$SourcePath\WakeOnLan.sln" `
+    dotnet build "$ProjectPath\WakeOnLan.sln" `
         --configuration Release --output "$BuiltModuleBase\bin"
 }
 

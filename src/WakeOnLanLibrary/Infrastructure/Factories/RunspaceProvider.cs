@@ -2,6 +2,8 @@
 
 using System.Management.Automation.Runspaces;
 using WakeOnLanLibrary.Application.Interfaces;
+using WakeOnLanLibrary.Core.Interfaces;
+using WakeOnLanLibrary.Infrastructure.Runspaces;
 
 namespace WakeOnLanLibrary.Infrastructure.Factories
 {
@@ -30,7 +32,7 @@ namespace WakeOnLanLibrary.Infrastructure.Factories
         /// <summary>
         /// Creates a Runspace Pool for managing multiple concurrent remote connections.
         /// </summary>
-        public RunspacePool CreateRunspacePool(int minRunspaces, int maxRunspaces, WSManConnectionInfo connectionInfo = null)
+        public IRunspacePool CreateRunspacePool(int minRunspaces, int maxRunspaces, WSManConnectionInfo connectionInfo = null)
         {
             if (minRunspaces <= 0 || maxRunspaces <= 0 || minRunspaces > maxRunspaces)
                 throw new ArgumentException("Invalid Runspace Pool configuration: ensure minRunspaces > 0, maxRunspaces > 0, and minRunspaces <= maxRunspaces.");
@@ -49,7 +51,7 @@ namespace WakeOnLanLibrary.Infrastructure.Factories
                 }
 
                 runspacePool.Open();
-                return runspacePool;
+                return new RunspacePoolWrapper(runspacePool);
             }
             catch (Exception ex)
             {

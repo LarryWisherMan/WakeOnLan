@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Models;
 
 namespace WakeOnLanLibrary.Infrastructure.Caching
 {
-    public class WakeOnLanResultCache : ICache<string, WakeOnLanReturn>
+    public class WakeOnLanResultCache : IWakeOnLanResultCache
     {
         private readonly ICache<string, WakeOnLanReturn> _cache;
 
-
         public WakeOnLanResultCache(ICache<string, WakeOnLanReturn> cache)
         {
-            _cache = cache;
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
         public void AddOrUpdate(string key, WakeOnLanReturn value) => _cache.AddOrUpdate(key, value);
@@ -28,10 +28,12 @@ namespace WakeOnLanLibrary.Infrastructure.Caching
                 });
         }
 
-
         public WakeOnLanReturn Get(string key) => _cache.Get(key);
+
         public ICollection<WakeOnLanReturn> GetAll() => _cache.GetAll();
+
         public void Remove(string key) => _cache.Remove(key);
+
         public void Clear() => _cache.Clear();
 
         public IEnumerable<WakeOnLanReturn> GetAllResults(bool sortDescending = false)
@@ -48,7 +50,7 @@ namespace WakeOnLanLibrary.Infrastructure.Caching
         }
 
         public IEnumerable<string> Keys => _cache.Keys;
-        public IEnumerable<string> GetAllKeys() => _cache.Keys;
+
+        public IEnumerable<string> GetAllKeys() => _cache.GetAllKeys();
     }
 }
-

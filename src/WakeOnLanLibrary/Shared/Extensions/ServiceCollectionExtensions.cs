@@ -21,10 +21,10 @@ namespace WakeOnLanLibrary.Shared.Extensions
         public static IServiceCollection AddValidators(this IServiceCollection services)
         {
             // Register INameIpValidator
-            services.AddSingleton<INameIpValidator, NameIpValidator>(); // Replace with actual implementation class
+            services.AddSingleton<INameIpValidator, NameIpValidator>();
 
             // Register IMacAddressHelper
-            services.AddSingleton<IMacAddressHelper, MacAddressHelper>(); // Replace `MacAddressHelper` with the actual implementation class
+            services.AddSingleton<IMacAddressHelper, MacAddressHelper>();
 
             // Register Validation Strategies
             services.AddSingleton<IValidationStrategy<Computer>, GeneralComputerValidationStrategy>();
@@ -34,10 +34,8 @@ namespace WakeOnLanLibrary.Shared.Extensions
             // Register Composite Validators
             services.AddSingleton(provider =>
                 new CompositeValidator<Computer>(provider.GetServices<IValidationStrategy<Computer>>()));
-
             services.AddSingleton(provider =>
                 new CompositeValidator<TargetComputer>(provider.GetServices<IValidationStrategy<TargetComputer>>()));
-
             services.AddSingleton(provider =>
                 new CompositeValidator<ProxyComputer>(provider.GetServices<IValidationStrategy<ProxyComputer>>()));
 
@@ -47,15 +45,21 @@ namespace WakeOnLanLibrary.Shared.Extensions
             return services;
         }
 
-
         public static IServiceCollection AddCaches(this IServiceCollection services)
         {
             // Register generic cache
             services.AddSingleton(typeof(ICache<,>), typeof(Cache<,>));
 
-            // Register specific caches
-            services.AddSingleton<MonitorCache>();
-            services.AddSingleton<WakeOnLanResultCache>();
+            // Register specific caches using their interfaces
+            services.AddSingleton<IMonitorCache, MonitorCache>();
+            services.AddSingleton<IWakeOnLanResultCache, WakeOnLanResultCache>();
+
+            // Register ResultManager
+            services.AddSingleton<IResultManager>(provider =>
+            {
+                var resultCache = provider.GetRequiredService<IWakeOnLanResultCache>();
+                return new ResultManager(resultCache);
+            });
 
             return services;
         }
@@ -72,19 +76,16 @@ namespace WakeOnLanLibrary.Shared.Extensions
             services.AddSingleton<IMonitorService>(provider =>
             {
                 var monitorService = new MonitorService(
-                    provider.GetRequiredService<MonitorCache>(),
+                    provider.GetRequiredService<IMonitorCache>(),
                     provider.GetRequiredService<IMonitorTask>(),
                     maxConcurrentTasks: 5,
                     intervalInSeconds: 10);
 
-                // No direct dependency on IMonitorCallback
                 return monitorService;
             });
 
-            // Ensure the IServiceCollection is returned
             return services;
         }
-
 
         public static IServiceCollection AddRunspaceServices(this IServiceCollection services)
         {
@@ -93,11 +94,10 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
             // Register IRequestQueue with a default maxConcurrency value
             services.AddSingleton<IRequestQueue>(provider =>
-                new RequestQueue(maxConcurrency: 5)); // Set the default maxConcurrency
+                new RequestQueue(maxConcurrency: 5));
 
             return services;
         }
-
 
         public static IServiceCollection AddWakeOnLanServices(this IServiceCollection services)
         {
@@ -106,9 +106,6 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
             // Register Caches
             services.AddCaches();
-
-            //Register CallBack
-
 
             // Register Monitoring Services
             services.AddMonitoringServices();
@@ -122,15 +119,19 @@ namespace WakeOnLanLibrary.Shared.Extensions
             // Register Remote PowerShell Executor
             services.AddSingleton<IRemotePowerShellExecutor, RemotePowerShellExecutor>();
 
+
+
+
+            // Register Proxy Request Processor
+            services.AddSingleton<IProxyRequestProcessor, ProxyRequestProcessor>();
+
+
             // Register Other Services
             services.AddSingleton<IMagicPacketSender, ProxyMagicPacketSender>();
             services.AddSingleton<IComputerFactory, ComputerFactory>();
 
             // Register WakeOnLanService
             services.AddSingleton<IWakeOnLanService, WakeOnLanService>();
-
-            //services.AddSingleton<IMonitorCallback>(provider =>
-            //    new MonitorCallback(provider.GetRequiredService<IWakeOnLanService>()));
 
             return services;
         }

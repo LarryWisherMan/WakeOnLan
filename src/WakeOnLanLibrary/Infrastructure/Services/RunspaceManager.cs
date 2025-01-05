@@ -3,13 +3,14 @@ using System.Collections.Concurrent;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using WakeOnLanLibrary.Application.Interfaces;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Infrastructure.Services
 {
     public class RunspaceManager : IRunspaceManager, IDisposable
     {
         private readonly IRunspaceProvider _runspaceProvider;
-        private readonly ConcurrentDictionary<string, RunspacePool> _runspacePools = new();
+        private readonly ConcurrentDictionary<string, IRunspacePool> _runspacePools = new();
         private readonly ConcurrentDictionary<string, Runspace> _runspaces = new();
         private bool _disposed;
 
@@ -21,7 +22,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
         /// <summary>
         /// Gets or creates a shared runspace pool for a specific proxy computer.
         /// </summary>
-        public RunspacePool GetOrCreateRunspacePool(string computerName, PSCredential credentials, int minRunspaces, int maxRunspaces)
+        public IRunspacePool GetOrCreateRunspacePool(string computerName, PSCredential credentials, int minRunspaces, int maxRunspaces)
         {
             if (string.IsNullOrWhiteSpace(computerName))
                 throw new ArgumentNullException(nameof(computerName), "Computer name cannot be null or empty.");
