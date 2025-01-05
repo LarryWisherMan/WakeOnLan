@@ -15,7 +15,7 @@ namespace WakeOnLanLibrary.Application.Services
         private readonly IProxyRequestProcessor _proxyRequestProcessor;
         private readonly IResultManager _resultManager;
         private readonly IRunspaceManager _runspaceManager;
-        private readonly IRequestQueue _requestQueue;
+        private readonly IRequestScheduler _requestScheduler;
         private readonly IMonitorService _monitorService;
 
 
@@ -23,7 +23,7 @@ namespace WakeOnLanLibrary.Application.Services
             IProxyRequestProcessor proxyRequestProcessor,
             IResultManager resultManager,
             IRunspaceManager runspaceManager,
-            IRequestQueue requestQueue,
+            IRequestScheduler requestScheduler,
             IMonitorService monitorService,
             IOptions<WakeOnLanConfiguration> config)
 
@@ -31,7 +31,7 @@ namespace WakeOnLanLibrary.Application.Services
             _proxyRequestProcessor = proxyRequestProcessor ?? throw new ArgumentNullException(nameof(proxyRequestProcessor));
             _resultManager = resultManager ?? throw new ArgumentNullException(nameof(resultManager));
             _runspaceManager = runspaceManager ?? throw new ArgumentNullException(nameof(runspaceManager));
-            _requestQueue = requestQueue ?? throw new ArgumentNullException(nameof(requestQueue));
+            _requestScheduler = requestScheduler ?? throw new ArgumentNullException(nameof(requestScheduler));
             _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
             _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
 
@@ -61,7 +61,7 @@ namespace WakeOnLanLibrary.Application.Services
                 var targets = proxyEntry.Value;
 
                 // Enqueue processing for each proxy
-                _requestQueue.Enqueue(async () =>
+                _requestScheduler.Schedule(async () =>
                 {
                     try
                     {
@@ -83,7 +83,7 @@ namespace WakeOnLanLibrary.Application.Services
             }
 
             // Process queued requests
-            await _requestQueue.ProcessQueueAsync();
+            await _requestScheduler.ExecuteScheduledTasksAsync();
 
             // Start monitoring asynchronously
             _ = Task.Run(() => _monitorService.StartMonitoringAsync(resolvedMaxPingAttempts, resolvedTimeout));

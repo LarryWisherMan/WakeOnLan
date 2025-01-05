@@ -94,8 +94,8 @@ namespace WakeOnLanLibrary.Shared.Extensions
             services.AddSingleton<IRunspaceManager, RunspaceManager>();
 
             // Register IRequestQueue with a default maxConcurrency value
-            services.AddSingleton<IRequestQueue>(provider =>
-                new RequestQueue(maxConcurrency: 5));
+            services.AddSingleton<IRequestScheduler>(provider =>
+                new RequestScheduler(maxConcurrency: 5));
 
             return services;
         }
