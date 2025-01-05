@@ -1,4 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Services;
+using WakeOnLanLibrary.Core.UseCases;
+using WakeOnLanLibrary.Tests.Mocks;
 
 namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
 {
@@ -18,46 +22,36 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
         [Theory]
         [Trait("Category", "Unit")]
         [Trait("Component", "WakeOnLanService")]
-        [InlineData("packetSender", null)]
-        [InlineData("computerValidator", null)]
-        [InlineData("computerFactory", null)]
-        [InlineData("runspaceManager", null)]
-        [InlineData("requestQueue", null)]
-        [InlineData("resultCache", null)]
-        [InlineData("monitorService", null)]
-        [InlineData("monitorCache", null)]
-        public void Constructor_ShouldThrowArgumentNullException_WhenDependenciesAreNull(
+        [InlineData("proxyRequestProcessor", typeof(IProxyRequestProcessor))]
+        [InlineData("resultManager", typeof(IResultManager))]
+        [InlineData("runspaceManager", typeof(IRunspaceManager))]
+        [InlineData("requestQueue", typeof(IRequestQueue))]
+        [InlineData("monitorService", typeof(IMonitorService))]
+        public void Constructor_ShouldThrowException_WhenDependenciesAreMissing(
             string paramName,
-            object dependency
-        )
+            Type serviceType)
         {
             // Arrange
-            var packetSender = paramName == "packetSender" ? null : MockPacketSender.Object;
-            var computerValidator = paramName == "computerValidator" ? null : MockComputerValidator.Object;
-            var computerFactory = paramName == "computerFactory" ? null : MockComputerFactory.Object;
-            var runspaceManager = paramName == "runspaceManager" ? null : MockRunspaceManager.Object;
-            var requestQueue = paramName == "requestQueue" ? null : MockRequestQueue.Object;
-            var resultCache = paramName == "resultCache" ? null : ResultCache;
-            var monitorService = paramName == "monitorService" ? null : MockMonitorService.Object;
-            var monitorCache = paramName == "monitorCache" ? null : MonitorCache;
+            var services = new ServiceCollection();
+            services.AddMockServices();
+
+            // Remove the service matching the type under test
+            var descriptorToRemove = services.FirstOrDefault(descriptor => descriptor.ServiceType == serviceType);
+            Assert.NotNull(descriptorToRemove); // Ensure the service exists
+            services.Remove(descriptorToRemove);
+
+            var provider = services.BuildServiceProvider();
 
             // Act & Assert
-            var exception = Assert.Throws<ArgumentNullException>(() =>
-                new WakeOnLanService(
-                    packetSender,
-                    computerValidator,
-                    computerFactory,
-                    runspaceManager,
-                    requestQueue,
-                    resultCache,
-                    monitorService,
-                    monitorCache
-                )
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                provider.GetRequiredService<IWakeOnLanService>()
             );
 
-            Assert.Equal(paramName, exception.ParamName);
-        }
 
+            Assert.Contains($"Unable to resolve service for type '{serviceType.FullName}' while attempting to activate '{typeof(WakeOnLanService).FullName}'", exception.Message);
+
+        }
         #endregion
     }
 }
+

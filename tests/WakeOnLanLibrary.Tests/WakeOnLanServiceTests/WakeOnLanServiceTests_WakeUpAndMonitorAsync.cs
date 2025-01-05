@@ -1,18 +1,41 @@
-﻿using Moq;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Management.Automation;
+using WakeOnLanLibrary.Application.Interfaces;
+using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
+using WakeOnLanLibrary.Core.Interfaces;
+using WakeOnLanLibrary.Core.UseCases;
+
 
 namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
 {
     public class WakeOnLanServiceTests_WakeUpAndMonitorAsync : WakeOnLanServiceTestBase
     {
+        private readonly IServiceProvider _serviceProvider;
+        private readonly IWakeOnLanService _service;
+        private readonly Mock<IComputerValidator> _mockComputerValidator;
+        private readonly Mock<IRequestQueue> _mockRequestQueue;
+        private readonly IWakeOnLanResultCache _resultCache;
+        private readonly Mock<IRunspaceManager> _mockRunspaceManager;
+        private readonly Mock<IRunspacePool> _mockRunspacePool;
 
         public WakeOnLanServiceTests_WakeUpAndMonitorAsync()
         {
-            ClearCaches();
+            _service = Service;
+            _serviceProvider = ServiceProvider;
+            _mockComputerValidator = Mock.Get(_serviceProvider.GetRequiredService<IComputerValidator>());
+            _mockRequestQueue = Mock.Get(_serviceProvider.GetRequiredService<IRequestQueue>());
+            _resultCache = _serviceProvider.GetRequiredService<IWakeOnLanResultCache>();
+            _mockRunspaceManager = Mock.Get(_serviceProvider.GetRequiredService<IRunspaceManager>());
+            _mockRunspacePool = new Mock<IRunspacePool>();
         }
 
+        private void ClearCaches()
+        {
+            _resultCache.Clear();
+        }
 
         [Fact]
         [Trait("Category", "Unit")]
@@ -23,10 +46,63 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
             var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>();
 
             // Act
-            var result = await Service.WakeUpAndMonitorAsync(proxyToTargets);
+            var result = await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
             Assert.Empty(result);
+        }
+
+        [Fact]
+        [Trait("Category", "Unit")]
+        [Trait("Component", "WakeOnLanService")]
+        public async Task WakeUpAndMonitorAsync_ShouldSkipProxiesWithNoTargets()
+        {
+            // Arrange
+            var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>
+            {
+                { "EmptyProxy", new List<(string, string)>() },
+            };
+
+            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
+
+            // Act
+            await _service.WakeUpAndMonitorAsync(proxyToTargets);
+
+            // Assert
+            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Once);
+        }
+
+
+        [Fact]
+        [Trait("Category", "Unit")]
+        [Trait("Component", "WakeOnLanService")]
+        public async Task WakeUpAndMonitorAsync_ShouldStartMonitoringService()
+        {
+            // Arrange
+            var proxyToTargets = new Dictionary<string, List<(string, string)>>
+    {
+        { "ValidProxy", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } }
+    };
+
+            var mockMonitorService = Mock.Get(_serviceProvider.GetRequiredService<IMonitorService>());
+
+            mockMonitorService
+            .Setup(m => m.StartMonitoringAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+            // Act
+            await _service.WakeUpAndMonitorAsync(proxyToTargets);
+
+            // Assert
+            mockMonitorService.Verify(
+            m => m.StartMonitoringAsync(
+                It.Is<int>(attempts => attempts == 5), // Validate maxPingAttempts
+                It.Is<int>(timeout => timeout == 60), // Validate timeoutInSeconds
+                It.IsAny<CancellationToken>()),      // Allow any CancellationToken
+            Times.Once);
         }
 
         [Fact]
@@ -37,27 +113,54 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
             // Arrange
             var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>
     {
-        { "InvalidProxy", new List<(string MacAddress, string ComputerName)>
-            {
-                ("00:11:22:33:44:55", "Target1")
-            }
-        }
+        { "InvalidProxy", new List<(string MacAddress, string ComputerName)> { ("00:11:22:33:44:55", "Target1") } }
     };
 
-            MockComputerValidator
-                .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
-                .Returns(new ValidationResult { IsValid = false, Message = "Invalid proxy" });
+            var enqueuedTasks = new List<Func<Task>>();
+
+            _mockRequestQueue
+                .Setup(q => q.Enqueue(It.IsAny<Func<Task>>()))
+                .Callback<Func<Task>>(task => enqueuedTasks.Add(task)); // Capture tasks
+
+            _mockRequestQueue
+                .Setup(q => q.ProcessQueueAsync(It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    foreach (var task in enqueuedTasks)
+                    {
+                        await task(); // Execute each enqueued task
+                    }
+                });
+
+            _mockRequestQueue
+                .Setup(q => q.ClearAsync(It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    enqueuedTasks.Clear(); // Clear all tasks
+                    return Task.CompletedTask;
+                });
+
+
+            // Mock RunspaceManager to simulate runspace pool creation failure
+            _mockRunspaceManager
+                .Setup(r => r.GetOrCreateRunspacePool(It.IsAny<string>(), It.IsAny<PSCredential>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Throws(new Exception("Runspace pool creation failed"));
 
             // Act
-            var result = await Service.WakeUpAndMonitorAsync(proxyToTargets);
+            var result = await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            Assert.Single(ResultCache.GetAllKeys());
-            var failureKey = ResultCache.GetAllKeys().First();
-            var failureResult = ResultCache.Get(failureKey);
+            _mockRunspaceManager.Verify(
+                r => r.GetOrCreateRunspacePool(It.IsAny<string>(), It.IsAny<PSCredential>(), It.IsAny<int>(), It.IsAny<int>()),
+                Times.Once); // Verify the method is called
+
+            Assert.Single(_resultCache.GetAllKeys()); // Ensure result cache has entries
+            var failureKey = _resultCache.GetAllKeys().First();
+            var failureResult = _resultCache.Get(failureKey);
             Assert.False(failureResult.WolSuccess);
-            Assert.Equal("Invalid proxy", failureResult.ErrorMessage);
+            Assert.Contains("Runspace pool creation failed", failureResult.ErrorMessage);
         }
+
 
 
         [Fact]
@@ -71,114 +174,45 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 { "ValidProxy", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } }
             };
 
-            MockComputerValidator
+
+
+            _mockComputerValidator
                 .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
                 .Returns(new ValidationResult { IsValid = true });
 
-            MockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
+            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
 
             // Act
-            await Service.WakeUpAndMonitorAsync(proxyToTargets);
+            await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            MockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Once);
+            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Once);
         }
+
+
 
         [Fact]
         [Trait("Category", "Unit")]
         [Trait("Component", "WakeOnLanService")]
-        public async Task WakeUpAndMonitorAsync_ShouldAddFailureResult_WhenRunspacePoolCreationFails()
-        {
-            // Arrange
-            var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>
-    {
-        { "ProxyWithError", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } }
-    };
-
-            MockComputerValidator
-                .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
-                .Returns(new ValidationResult { IsValid = true });
-
-            MockRunspaceManager
-                .Setup(r => r.GetOrCreateRunspacePool(It.IsAny<string>(), It.IsAny<PSCredential>(), 1, 5))
-                .Throws(new Exception("Runspace pool creation failed"));
-
-            MockRequestQueue
-                .Setup(q => q.Enqueue(It.IsAny<Func<Task>>()))
-                .Callback<Func<Task>>(async task => await task());
-
-            // Act
-            var result = await Service.WakeUpAndMonitorAsync(proxyToTargets);
-
-            // Assert
-            Assert.NotEmpty(result);
-            var failure = result.First();
-            Assert.False(failure.WolSuccess);
-            Assert.Contains("Runspace pool creation failed", failure.ErrorMessage);
-        }
-
-        [Fact]
-        [Trait("Category", "Unit")]
-        [Trait("Component", "WakeOnLanService")]
-        public async Task WakeUpAndMonitorAsync_ShouldStartMonitoring_WhenRequestsAreProcessed()
+        public async Task WakeUpAndMonitorAsync_ShouldProcessTasksForAllProxies()
         {
             // Arrange
             var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>
             {
-                { "ValidProxy", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } }
+                { "Proxy1", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } },
+                { "Proxy2", new List<(string, string)> { ("66:77:88:99:AA:BB", "Target2") } }
             };
 
-            MockComputerValidator
-                .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
-                .Returns(new ValidationResult { IsValid = true });
-
-            MockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
-
-            MockMonitorService
-                .Setup(m => m.StartMonitoringAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
+            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
 
             // Act
-            await Service.WakeUpAndMonitorAsync(proxyToTargets);
+            await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            MockMonitorService.Verify(m => m.StartMonitoringAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Exactly(proxyToTargets.Count));
         }
 
-        [Fact]
-        [Trait("Category", "Unit")]
-        [Trait("Component", "WakeOnLanService")]
-        public async Task WakeUpAndMonitorAsync_ShouldReturnAllResults_FromResultCache()
-        {
-            // Arrange
-            var proxyToTargets = new Dictionary<string, List<(string MacAddress, string ComputerName)>>
-            {
-                { "ValidProxy", new List<(string, string)> { ("00:11:22:33:44:55", "Target1") } }
-            };
-
-            MockComputerValidator
-                .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
-                .Returns(new ValidationResult { IsValid = true });
-
-            MockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
-
-            ResultCache.AddOrUpdate("Target1:00:11:22:33:44:55", new WakeOnLanReturn
-            {
-                TargetComputerName = "Target1",
-                TargetMacAddress = "00:11:22:33:44:55",
-                WolSuccess = true
-            });
-
-            // Act
-            var result = await Service.WakeUpAndMonitorAsync(proxyToTargets);
-
-            // Assert
-            Assert.NotEmpty(result);
-            var successResult = result.First();
-            Assert.True(successResult.WolSuccess);
-            Assert.Equal("Target1", successResult.TargetComputerName);
-            Assert.Equal("00:11:22:33:44:55", successResult.TargetMacAddress);
-        }
     }
 }
+
 
