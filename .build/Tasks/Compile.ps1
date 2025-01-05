@@ -38,10 +38,14 @@ param
 )
 
 task restore {
+
+    $path = Get-SamplerAbsolutePath
     ##. Set-SamplerTaskVariable -AsNewBuild
+    Write-Host "Cleaning solution..." -ForegroundColor Green
+    dotnet clean "$path\WakeOnLan.sln"
 
     Write-Host "Restoring NuGet packages..." -ForegroundColor Green
-    dotnet restore "$SourcePath\WakeOnLan.sln"
+    dotnet restore "$path\WakeOnLan.sln"
 }
 
 task compile {

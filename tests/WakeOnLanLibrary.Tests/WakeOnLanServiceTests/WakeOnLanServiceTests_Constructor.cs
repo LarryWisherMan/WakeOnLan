@@ -25,7 +25,7 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
         [InlineData("proxyRequestProcessor", typeof(IProxyRequestProcessor))]
         [InlineData("resultManager", typeof(IResultManager))]
         [InlineData("runspaceManager", typeof(IRunspaceManager))]
-        [InlineData("requestQueue", typeof(IRequestQueue))]
+        [InlineData("requestQueue", typeof(IRequestScheduler))]
         [InlineData("monitorService", typeof(IMonitorService))]
         public void Constructor_ShouldThrowException_WhenDependenciesAreMissing(
             string paramName,

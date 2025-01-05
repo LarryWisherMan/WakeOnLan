@@ -16,7 +16,7 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
         private readonly IServiceProvider _serviceProvider;
         private readonly IWakeOnLanService _service;
         private readonly Mock<IComputerValidator> _mockComputerValidator;
-        private readonly Mock<IRequestQueue> _mockRequestQueue;
+        private readonly Mock<IRequestScheduler> _mockRequestQueue;
         private readonly IWakeOnLanResultCache _resultCache;
         private readonly Mock<IRunspaceManager> _mockRunspaceManager;
         private readonly Mock<IRunspacePool> _mockRunspacePool;
@@ -26,7 +26,7 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
             _service = Service;
             _serviceProvider = ServiceProvider;
             _mockComputerValidator = Mock.Get(_serviceProvider.GetRequiredService<IComputerValidator>());
-            _mockRequestQueue = Mock.Get(_serviceProvider.GetRequiredService<IRequestQueue>());
+            _mockRequestQueue = Mock.Get(_serviceProvider.GetRequiredService<IRequestScheduler>());
             _resultCache = _serviceProvider.GetRequiredService<IWakeOnLanResultCache>();
             _mockRunspaceManager = Mock.Get(_serviceProvider.GetRequiredService<IRunspaceManager>());
             _mockRunspacePool = new Mock<IRunspacePool>();
@@ -63,13 +63,13 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 { "EmptyProxy", new List<(string, string)>() },
             };
 
-            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
+            _mockRequestQueue.Setup(q => q.Schedule(It.IsAny<Func<Task>>()));
 
             // Act
             await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Once);
+            _mockRequestQueue.Verify(q => q.Schedule(It.IsAny<Func<Task>>()), Times.Once);
         }
 
 
@@ -119,11 +119,11 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
             var enqueuedTasks = new List<Func<Task>>();
 
             _mockRequestQueue
-                .Setup(q => q.Enqueue(It.IsAny<Func<Task>>()))
+                .Setup(q => q.Schedule(It.IsAny<Func<Task>>()))
                 .Callback<Func<Task>>(task => enqueuedTasks.Add(task)); // Capture tasks
 
             _mockRequestQueue
-                .Setup(q => q.ProcessQueueAsync(It.IsAny<CancellationToken>()))
+                .Setup(q => q.ExecuteScheduledTasksAsync(It.IsAny<CancellationToken>()))
                 .Returns(async () =>
                 {
                     foreach (var task in enqueuedTasks)
@@ -133,7 +133,7 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 });
 
             _mockRequestQueue
-                .Setup(q => q.ClearAsync(It.IsAny<CancellationToken>()))
+                .Setup(q => q.ClearScheduledTasksAsync(It.IsAny<CancellationToken>()))
                 .Returns(() =>
                 {
                     enqueuedTasks.Clear(); // Clear all tasks
@@ -180,13 +180,13 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 .Setup(v => v.Validate(It.IsAny<ProxyComputer>()))
                 .Returns(new ValidationResult { IsValid = true });
 
-            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
+            _mockRequestQueue.Setup(q => q.Schedule(It.IsAny<Func<Task>>()));
 
             // Act
             await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Once);
+            _mockRequestQueue.Verify(q => q.Schedule(It.IsAny<Func<Task>>()), Times.Once);
         }
 
 
@@ -203,13 +203,13 @@ namespace WakeOnLanLibrary.Tests.WakeOnLanServiceTests
                 { "Proxy2", new List<(string, string)> { ("66:77:88:99:AA:BB", "Target2") } }
             };
 
-            _mockRequestQueue.Setup(q => q.Enqueue(It.IsAny<Func<Task>>()));
+            _mockRequestQueue.Setup(q => q.Schedule(It.IsAny<Func<Task>>()));
 
             // Act
             await _service.WakeUpAndMonitorAsync(proxyToTargets);
 
             // Assert
-            _mockRequestQueue.Verify(q => q.Enqueue(It.IsAny<Func<Task>>()), Times.Exactly(proxyToTargets.Count));
+            _mockRequestQueue.Verify(q => q.Schedule(It.IsAny<Func<Task>>()), Times.Exactly(proxyToTargets.Count));
         }
 
     }
