@@ -1,5 +1,5 @@
-﻿using System.Management.Automation.Runspaces;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Application.Interfaces
 {
@@ -8,7 +8,7 @@ namespace WakeOnLanLibrary.Application.Interfaces
         /// <summary>
         /// Executes a PowerShell script asynchronously using a RunspacePool.
         /// </summary>
-        Task ExecuteAsync(RunspacePool runspacePool, string script);
+        Task ExecuteAsync(IRunspacePool runspacePool, string script);
     }
 }
 

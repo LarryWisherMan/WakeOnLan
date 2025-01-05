@@ -1,4 +1,5 @@
 ﻿using System.Management.Automation.Runspaces;
+using WakeOnLanLibrary.Core.Interfaces;
 
 namespace WakeOnLanLibrary.Application.Interfaces
 {
@@ -12,6 +13,6 @@ namespace WakeOnLanLibrary.Application.Interfaces
         /// <summary>
         /// Creates a Runspace Pool for managing multiple concurrent remote connections.
         /// </summary>
-        RunspacePool CreateRunspacePool(int minRunspaces, int maxRunspaces, WSManConnectionInfo connectionInfo = null);
+        IRunspacePool CreateRunspacePool(int minRunspaces, int maxRunspaces, WSManConnectionInfo connectionInfo = null);
     }
 }

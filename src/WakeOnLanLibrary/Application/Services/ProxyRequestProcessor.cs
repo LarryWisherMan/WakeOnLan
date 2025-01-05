@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
-using System.Management.Automation.Runspaces;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Interfaces.Validation;
@@ -38,7 +37,7 @@ namespace WakeOnLanLibrary.Application.Services
             List<(string MacAddress, string ComputerName)> targets,
             int port,
             PSCredential credential,
-            RunspacePool runspacePool,
+            IRunspacePool runspacePool,
             int maxPingAttempts,
             int timeoutInSeconds)
         {
