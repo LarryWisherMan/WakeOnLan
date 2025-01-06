@@ -37,55 +37,127 @@ namespace WakeOnLanLibrary.Application.Services
         }
 
         public async Task ProcessProxyRequestsAsync(
+               string proxyComputerName,
+               List<(string MacAddress, string ComputerName)> targets,
+               int port,
+               PSCredential credential,
+               int minRunspaces,
+               int maxRunspaces,
+               int maxPingAttempts,
+               int timeoutInSeconds)
+        {
+            if (targets == null || !targets.Any()) return;
+
+            // Early exit if proxyComputerName is null or empty
+            if (string.IsNullOrWhiteSpace(proxyComputerName)) return;
+
+            // Step 1: Initialize the runspace pool.
+            var runspacePool = InitializeRunspacePool(proxyComputerName, port, credential, minRunspaces, maxRunspaces, targets);
+            if (runspacePool == null) return;
+
+            // Step 2: Prepare the Wake-on-LAN requests.
+            var wolRequests = PrepareWakeOnLanRequests(proxyComputerName, targets, port, runspacePool, timeoutInSeconds);
+
+            // Step 3: Send Wake-on-LAN requests.
+            if (wolRequests.Any())
+            {
+                try
+                {
+                    await ExecuteWakeOnLanRequestsAsync(wolRequests);
+                }
+                catch (Exception ex)
+                {
+                    _resultManager.AddFailureResults(proxyComputerName, targets, port, $"An error occurred: {ex.Message}");
+                }
+            }
+        }
+
+
+        private IRunspacePool InitializeRunspacePool(
         string proxyComputerName,
-        List<(string MacAddress, string ComputerName)> targets,
         int port,
         PSCredential credential,
         int minRunspaces,
         int maxRunspaces,
-        int maxPingAttempts,
-        int timeoutInSeconds)
+       List<(string MacAddress, string ComputerName)> targets)
+        {
+            var proxyComputer = _computerFactory.CreateProxyComputer(proxyComputerName, port);
+
+            // Validate proxy computer.
+            if (!TryValidateComputer(proxyComputer,
+                message => _resultManager.AddFailureResults(proxyComputerName, targets, port, message),
+                out _))
+            {
+                return null;
+            }
+
+            return _runspaceManager.GetOrCreateRunspacePool(proxyComputerName, credential, minRunspaces, maxRunspaces);
+        }
+
+
+        internal List<WakeOnLanRequest> PrepareWakeOnLanRequests(
+            string proxyComputerName,
+            List<(string MacAddress, string ComputerName)> targets,
+            int port,
+            IRunspacePool runspacePool,
+            int timeoutInSeconds)
         {
             var wolRequests = new List<WakeOnLanRequest>();
 
-            var runspacePool = TryInitializeProxy(proxyComputerName, port, credential, minRunspaces, maxRunspaces, targets);
-
-            if (runspacePool == null)
-            {
-                return;
-            }
-
             foreach (var target in targets)
             {
-                if (!TryValidateTarget(target, proxyComputerName, port, out var validatedTarget))
-                    continue;
+                if (!TryValidateTarget(target, proxyComputerName, port, out _)) continue;
 
-                var wolRequest = new WakeOnLanRequest
+                // Create and add Wake-on-LAN request.
+                wolRequests.Add(CreateWakeOnLanRequest(target, port, runspacePool));
+
+                try
                 {
-                    TargetMacAddress = target.MacAddress,
-                    TargetComputerName = target.ComputerName,
-                    Port = port,
-                    ProxyRunspacePool = runspacePool
-                };
-
-                wolRequests.Add(wolRequest);
-
-                _monitorCache.AddOrUpdate(target.ComputerName, new MonitorEntry
+                    // Update monitor cache
+                    AddToMonitorCache(proxyComputerName, target, timeoutInSeconds);
+                }
+                catch (Exception ex)
                 {
-                    ComputerName = target.ComputerName,
-                    ProxyComputerName = proxyComputerName,
-                    WolSentTime = DateTime.UtcNow,
-                    MonitoringEndTime = DateTime.UtcNow.AddSeconds(timeoutInSeconds),
-                    WolSuccess = false,
-                    IsMonitoringComplete = false
-                });
+                    // Log exception and continue processing other targets
+                    _resultManager.AddFailureResults(proxyComputerName, new List<(string, string)> { target }, port,
+                        $"Failed to update monitor cache: {ex.Message}");
+                }
             }
 
-            if (wolRequests.Any())
+            return wolRequests;
+        }
+
+        private WakeOnLanRequest CreateWakeOnLanRequest(
+       (string MacAddress, string ComputerName) target,
+       int port,
+       IRunspacePool runspacePool)
+        {
+            return new WakeOnLanRequest
             {
-                await _packetSender.SendPacketAsync(wolRequests);
-                _resultManager.AddSuccessResults(wolRequests);
-            }
+                TargetMacAddress = target.MacAddress,
+                TargetComputerName = target.ComputerName,
+                Port = port,
+                ProxyRunspacePool = runspacePool
+            };
+        }
+
+        private void AddToMonitorCache(string proxyComputerName, (string MacAddress, string ComputerName) target, int timeoutInSeconds)
+        {
+            _monitorCache.AddOrUpdate(target.ComputerName, new MonitorEntry
+            {
+                ComputerName = target.ComputerName,
+                ProxyComputerName = proxyComputerName,
+                WolSentTime = DateTime.UtcNow,
+                MonitoringEndTime = DateTime.UtcNow.AddSeconds(timeoutInSeconds),
+                WolSuccess = false,
+                IsMonitoringComplete = false
+            });
+        }
+
+        private async Task ExecuteWakeOnLanRequestsAsync(List<WakeOnLanRequest> wolRequests)
+        {
+            await _packetSender.SendPacketAsync(wolRequests);
+            _resultManager.AddSuccessResults(wolRequests);
         }
 
         private bool TryValidateComputer<TComputer>(
@@ -94,8 +166,8 @@ namespace WakeOnLanLibrary.Application.Services
             out TComputer validatedComputer) where TComputer : Computer
         {
             validatedComputer = computer;
-
             var validationResult = _computerValidator.Validate(computer);
+
             if (!validationResult.IsValid)
             {
                 handleFailure?.Invoke(validationResult.Message);
@@ -103,26 +175,6 @@ namespace WakeOnLanLibrary.Application.Services
             }
 
             return true;
-        }
-
-        private IRunspacePool TryInitializeProxy(
-            string proxyComputerName,
-            int port,
-            PSCredential credential,
-            int minRunspaces,
-            int maxRunspaces,
-            List<(string MacAddress, string ComputerName)> targets)
-        {
-            var proxyComputer = _computerFactory.CreateProxyComputer(proxyComputerName, port);
-
-            if (!TryValidateComputer(proxyComputer,
-                message => _resultManager.AddFailureResults(proxyComputerName, targets, port, message),
-                out var validatedProxy))
-            {
-                return null;
-            }
-
-            return _runspaceManager.GetOrCreateRunspacePool(proxyComputerName, credential, minRunspaces, maxRunspaces);
         }
 
         private bool TryValidateTarget(
@@ -137,11 +189,6 @@ namespace WakeOnLanLibrary.Application.Services
                 message => _resultManager.AddFailureResults(proxyComputerName, new List<(string, string)> { target }, port, message),
                 out validatedTarget);
         }
-
-
-
-
-
 
     }
 }
