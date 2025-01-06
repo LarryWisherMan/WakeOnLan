@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
@@ -65,7 +66,7 @@ namespace WakeOnLanLibrary.Application.Services
             return _resultManager.GetAllResults();
         }
 
-        private (int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) ResolveParameters(
+        internal (int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) ResolveParameters(
         int? port,
         int? maxPingAttempts,
         int? timeoutInSeconds)
@@ -84,6 +85,12 @@ namespace WakeOnLanLibrary.Application.Services
            PSCredential credential,
            (int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) parameters)
         {
+
+            if (proxyToTargets == null || !proxyToTargets.Any())
+            {
+                return; // Exit early if the dictionary is empty
+            }
+
             foreach (var proxyEntry in proxyToTargets)
             {
                 var proxyComputerName = proxyEntry.Key;
