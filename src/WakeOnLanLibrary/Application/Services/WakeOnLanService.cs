@@ -1,83 +1,134 @@
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Models;
-using WakeOnLanLibrary.Core.UseCases;
 
 namespace WakeOnLanLibrary.Application.Services
 {
     public class WakeOnLanService : IWakeOnLanService
     {
+        private readonly WakeOnLanConfiguration _config;
         private readonly IProxyRequestProcessor _proxyRequestProcessor;
         private readonly IResultManager _resultManager;
-        private readonly IRunspaceManager _runspaceManager;
-        private readonly IRequestQueue _requestQueue;
-        private readonly IMonitorService _monitorService;
+        private readonly IRequestScheduler _requestScheduler;
+        private readonly IMonitoringManager _monitoringManager;
+        private readonly ITaskRunner _taskRunner;
+
 
         public WakeOnLanService(
             IProxyRequestProcessor proxyRequestProcessor,
             IResultManager resultManager,
-            IRunspaceManager runspaceManager,
-            IRequestQueue requestQueue,
-            IMonitorService monitorService)
+            IRequestScheduler requestScheduler,
+            IMonitoringManager monitoringManager,
+            ITaskRunner taskRunner,
+            IOptions<WakeOnLanConfiguration> config)
+
         {
             _proxyRequestProcessor = proxyRequestProcessor ?? throw new ArgumentNullException(nameof(proxyRequestProcessor));
             _resultManager = resultManager ?? throw new ArgumentNullException(nameof(resultManager));
-            _runspaceManager = runspaceManager ?? throw new ArgumentNullException(nameof(runspaceManager));
-            _requestQueue = requestQueue ?? throw new ArgumentNullException(nameof(requestQueue));
-            _monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
+            _requestScheduler = requestScheduler ?? throw new ArgumentNullException(nameof(requestScheduler));
+            _monitoringManager = monitoringManager ?? throw new ArgumentNullException(nameof(monitoringManager));
+            _taskRunner = taskRunner ?? throw new ArgumentNullException(nameof(taskRunner));
+            _config = config?.Value ?? throw new ArgumentNullException(nameof(config));
 
-            _monitorService.MonitoringCompleted += UpdateMonitoringResult;
+
+            // Subscribe to the MonitoringCompleted event
+            _monitoringManager.MonitoringCompleted += OnMonitoringCompleted;
+        }
+
+        private void OnMonitoringCompleted(string computerName, bool success, string errorMessage)
+        {
+            _resultManager.UpdateMonitoringResult(computerName, success, errorMessage);
         }
 
         public async Task<IEnumerable<WakeOnLanReturn>> WakeUpAndMonitorAsync(
             Dictionary<string, List<(string MacAddress, string ComputerName)>> proxyToTargets,
-            int port = 9,
+            int? port = null,
             PSCredential credential = null,
-            int maxPingAttempts = 5,
-            int timeoutInSeconds = 60)
+            int? maxPingAttempts = null,
+            int? timeoutInSeconds = null)
+
         {
+
+            var parameters = ResolveParameters(port, maxPingAttempts, timeoutInSeconds);
+
+            EnqueueProxyTasks(proxyToTargets, credential, parameters);
+
+            // Process queued requests
+            await _requestScheduler.ExecuteScheduledTasksAsync();
+
+            // Start monitoring asynchronously
+            StartMonitoring(parameters);
+            return _resultManager.GetAllResults();
+        }
+
+        internal (int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) ResolveParameters(
+        int? port,
+        int? maxPingAttempts,
+        int? timeoutInSeconds)
+        {
+            return (
+                ResolvedPort: port ?? _config.DefaultPort,
+                ResolvedMaxPingAttempts: maxPingAttempts ?? _config.MaxPingAttempts,
+                ResolvedTimeout: timeoutInSeconds ?? _config.DefaultTimeoutInSeconds,
+                MinRunspaces: _config.RunspacePoolMinThreads,
+                MaxRunspaces: _config.RunspacePoolMaxThreads
+            );
+        }
+
+        private void EnqueueProxyTasks(
+           Dictionary<string, List<(string MacAddress, string ComputerName)>> proxyToTargets,
+           PSCredential credential,
+           (int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) parameters)
+        {
+
+            if (proxyToTargets == null || !proxyToTargets.Any())
+            {
+                return; // Exit early if the dictionary is empty
+            }
+
             foreach (var proxyEntry in proxyToTargets)
             {
                 var proxyComputerName = proxyEntry.Key;
                 var targets = proxyEntry.Value;
 
-                // Enqueue processing for each proxy
-                _requestQueue.Enqueue(async () =>
+                _requestScheduler.Schedule(async () =>
                 {
                     try
                     {
-                        var runspacePool = _runspaceManager.GetOrCreateRunspacePool(proxyComputerName, credential, 1, 5);
                         await _proxyRequestProcessor.ProcessProxyRequestsAsync(
                             proxyComputerName,
                             targets,
-                            port,
+                            parameters.ResolvedPort,
                             credential,
-                            runspacePool,
-                            maxPingAttempts,
-                            timeoutInSeconds);
+                            parameters.MinRunspaces,
+                            parameters.MaxRunspaces,
+                            parameters.ResolvedMaxPingAttempts,
+                            parameters.ResolvedTimeout);
                     }
                     catch (Exception ex)
                     {
-                        _resultManager.AddFailureResults(proxyComputerName, targets, port, $"Runspace pool creation failed: {ex.Message}");
+                        _resultManager.AddFailureResults(
+                            proxyComputerName,
+                            targets,
+                            parameters.ResolvedPort,
+                            $"{ex.Message}");
                     }
                 });
             }
-
-            // Process queued requests
-            await _requestQueue.ProcessQueueAsync();
-
-            // Start monitoring asynchronously
-            _ = Task.Run(() => _monitorService.StartMonitoringAsync(maxPingAttempts, timeoutInSeconds));
-
-            return _resultManager.GetAllResults();
         }
 
-        public void UpdateMonitoringResult(string computerName, bool success, string errorMessage = null)
+
+        private void StartMonitoring((int ResolvedPort, int ResolvedMaxPingAttempts, int ResolvedTimeout, int MinRunspaces, int MaxRunspaces) parameters)
         {
-            _resultManager.UpdateMonitoringResult(computerName, success, errorMessage);
+            _taskRunner.Run(() => _monitoringManager.StartMonitoringAsync(
+                parameters.ResolvedMaxPingAttempts,
+                parameters.ResolvedTimeout));
         }
     }
+
 }

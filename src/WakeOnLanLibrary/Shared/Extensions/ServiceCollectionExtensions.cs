@@ -2,6 +2,7 @@
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Application.Interfaces.Helpers;
 using WakeOnLanLibrary.Application.Interfaces.Validation;
+using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Application.Services;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces;
@@ -84,6 +85,13 @@ namespace WakeOnLanLibrary.Shared.Extensions
                 return monitorService;
             });
 
+            // Register MonitoringManager
+            services.AddSingleton<IMonitoringManager, MonitoringManager>(provider =>
+            {
+                var monitorService = provider.GetRequiredService<IMonitorService>();
+                return new MonitoringManager(monitorService);
+            });
+
             return services;
         }
 
@@ -93,14 +101,34 @@ namespace WakeOnLanLibrary.Shared.Extensions
             services.AddSingleton<IRunspaceManager, RunspaceManager>();
 
             // Register IRequestQueue with a default maxConcurrency value
-            services.AddSingleton<IRequestQueue>(provider =>
-                new RequestQueue(maxConcurrency: 5));
+            services.AddSingleton<IRequestScheduler>(provider =>
+                new RequestScheduler(maxConcurrency: 5));
+
+            return services;
+        }
+
+        public static IServiceCollection AddConfigOptions(this IServiceCollection services)
+        {
+            services.Configure<WakeOnLanConfiguration>(options =>
+            {
+                options.DefaultPort = 9;
+                options.MaxPingAttempts = 5;
+                options.DefaultTimeoutInSeconds = 60;
+                options.RunspacePoolMinThreads = 1;
+                options.RunspacePoolMaxThreads = 5;
+            });
 
             return services;
         }
 
         public static IServiceCollection AddWakeOnLanServices(this IServiceCollection services)
         {
+            //Add Task Runner
+            services.AddSingleton<ITaskRunner, TaskRunner>();
+
+            //Set Config Options
+            services.AddConfigOptions();
+
             // Register Validators
             services.AddValidators();
 
@@ -118,9 +146,6 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
             // Register Remote PowerShell Executor
             services.AddSingleton<IRemotePowerShellExecutor, RemotePowerShellExecutor>();
-
-
-
 
             // Register Proxy Request Processor
             services.AddSingleton<IProxyRequestProcessor, ProxyRequestProcessor>();

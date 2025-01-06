@@ -57,6 +57,7 @@
  RequiredAssemblies = @(
         'bin\Microsoft.Extensions.DependencyInjection.dll',
         'bin\Microsoft.Extensions.DependencyInjection.Abstractions.dll',
+        'bin\Microsoft.Extensions.Options.dll',
         'bin\Microsoft.Bcl.AsyncInterfaces.dll',
         'bin\System.Runtime.CompilerServices.Unsafe.dll',
         'bin\System.Threading.Tasks.Extensions.dll',
