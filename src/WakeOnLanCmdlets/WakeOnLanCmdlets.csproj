@@ -12,12 +12,14 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<!-- Allow dependencies to be copied -->
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<DocumentationFile>$(OutputPath)\WakeOnLanCmdlets.xml</DocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<!-- Required dependencies -->
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"
+			Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0">
 			<PrivateAssets>all</PrivateAssets>
@@ -29,17 +31,35 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="PowerShellStandard.Library" Version="5.1.0" />
+		<PackageReference Include="XmlDoc2CmdletDoc" Version="0.3.0" />
+
 	</ItemGroup>
+
 
 	<ItemGroup>
 		<!-- Reference the library project -->
 		<ProjectReference Include="..\WakeOnLanLibrary\WakeOnLanLibrary.csproj" />
 	</ItemGroup>
 
+	<!--<Import
+	Project="..\packages\XmlDoc2CmdletDoc.0.3.0\build\XmlDoc2CmdletDoc.targets"
+	Condition="Exists('..\packages\XmlDoc2CmdletDoc.0.3.0\build\XmlDoc2CmdletDoc.targets')" />
+	<Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+		<PropertyGroup>
+			<ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet
+	Package Restore to download them.  For more information, see
+	http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+		</PropertyGroup>
+		<Error Condition="!Exists('..\packages\XmlDoc2CmdletDoc.0.3.0\build\XmlDoc2CmdletDoc.targets')"
+	Text="$([System.String]::Format('$(ErrorText)',
+	'..\packages\XmlDoc2CmdletDoc.0.3.0\build\XmlDoc2CmdletDoc.targets'))" />
+	</Target>-->
+
 	<Target Name="CleanUnnecessaryFiles" AfterTargets="Build">
-		<!-- Define patterns for files to delete -->
+		<!-- Define patterns for files to delete-->
 		<ItemGroup>
-			<FilesToDelete Include="$(OutputPath)\**\*" Exclude="
+			<FilesToDelete Include="$(OutputPath)\**\*"
+				Exclude="
 		  $(OutputPath)\Microsoft.Extensions.DependencyInjection.dll;
 		  $(OutputPath)\Microsoft.Extensions.DependencyInjection.Abstractions.dll;
 		  $(OutputPath)\Microsoft.Extensions.Options.dll;
@@ -48,10 +68,14 @@
 		  $(OutputPath)\System.Threading.Tasks.Extensions.dll;
 		  $(OutputPath)\WakeOnLanCmdlets.dll;
 		  $(OutputPath)\WakeOnLanLibrary.dll;
-		  $(OutputPath)\LWM.WakeOnLan.psd1" />
+		  $(OutputPath)\LWM.WakeOnLan.psd1;
+		  $(OutputPath)\WakeOnLanCmdlets.dll-help.xml"
+						   
+			/>
 		</ItemGroup>
 
-		<!-- Delete all unnecessary files -->
+		<!--Delete
+		all unnecessary files-->
 		<Delete Files="@(FilesToDelete)" />
 	</Target>
 </Project>

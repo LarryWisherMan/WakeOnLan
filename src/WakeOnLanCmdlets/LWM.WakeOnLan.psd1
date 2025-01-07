@@ -9,7 +9,7 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule        = 'bin\WakeOnLanCmdlets.dll'
+    RootModule        = 'WakeOnLanCmdlets.dll'
 
     # Version number of this module.
     ModuleVersion     = '0.0.1'
@@ -55,12 +55,12 @@
 
     # Assemblies that must be loaded prior to importing this module
  RequiredAssemblies = @(
-        'bin\Microsoft.Extensions.DependencyInjection.dll',
-        'bin\Microsoft.Extensions.DependencyInjection.Abstractions.dll',
-        'bin\Microsoft.Bcl.AsyncInterfaces.dll',
-        'bin\System.Runtime.CompilerServices.Unsafe.dll',
-        'bin\System.Threading.Tasks.Extensions.dll',
-        'bin\WakeOnLanLibrary.dll'
+        'Microsoft.Extensions.DependencyInjection.dll',
+        'Microsoft.Extensions.DependencyInjection.Abstractions.dll',
+        'Microsoft.Bcl.AsyncInterfaces.dll',
+        'System.Runtime.CompilerServices.Unsafe.dll',
+        'System.Threading.Tasks.Extensions.dll',
+        'WakeOnLanLibrary.dll'
     )
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
