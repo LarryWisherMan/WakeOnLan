@@ -9,7 +9,7 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule        = 'bin\WakeOnLanCmdlets.dll'
+    RootModule        = 'WakeOnLanCmdlets.dll'
 
     # Version number of this module.
     ModuleVersion     = '0.0.1'
@@ -24,44 +24,46 @@
     Author            = 'LarryWisherMan'
 
     # Company or vendor of this module
-    CompanyName       = 'Unknown'
+    CompanyName       = 'LarryWisherMan'
 
     # Copyright statement for this module
     Copyright         = '(c) LarryWisherMan. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description       = 'A module for sending Wake-On-LAN requests and monitoring the status of target computers.'
+Description = @"
+LWM.WakeOnLan is a PowerShell module designed to facilitate sending Wake-on-LAN (WOL) requests and managing the status of target computers.
+It supports scenarios such as sending WOL requests across subnets using proxy computers, monitoring the status of target machines after WOL requests,
+and retrieving detailed logs of operations. The module integrates seamlessly with PowerShell for easy automation and scripting,
+making it ideal for administrators managing remote infrastructure.
+"@
 
     # Minimum version of the PowerShell engine required by this module
-    # PowerShellVersion = ''
+     PowerShellVersion = '5.1'
 
     # Name of the PowerShell host required by this module
-    # PowerShellHostName = ''
+     #PowerShellHostName = '*'
 
     # Minimum version of the PowerShell host required by this module
     # PowerShellHostVersion = ''
 
     # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-    # DotNetFrameworkVersion = ''
+     DotNetFrameworkVersion = '4.7.2'
 
     # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-    # ClrVersion = ''
+     ClrVersion = '4.0'
 
     # Processor architecture (None, X86, Amd64) required by this module
     # ProcessorArchitecture = ''
 
-    # Modules that must be imported into the global environment prior to importing this module
-    #RequiredAssemblies = @('System.Management.Automation.dll', 'System.ValueTuple.dll', 'WakeOnLanLibrary.dll')
-
     # Assemblies that must be loaded prior to importing this module
  RequiredAssemblies = @(
-        'bin\Microsoft.Extensions.DependencyInjection.dll',
-        'bin\Microsoft.Extensions.DependencyInjection.Abstractions.dll',
-        'bin\Microsoft.Extensions.Options.dll',
-        'bin\Microsoft.Bcl.AsyncInterfaces.dll',
-        'bin\System.Runtime.CompilerServices.Unsafe.dll',
-        'bin\System.Threading.Tasks.Extensions.dll',
-        'bin\WakeOnLanLibrary.dll'
+        'Microsoft.Extensions.DependencyInjection.dll',
+        'Microsoft.Extensions.DependencyInjection.Abstractions.dll',
+        'Microsoft.Extensions.Options.dll',
+        'Microsoft.Bcl.AsyncInterfaces.dll',
+        'System.Runtime.CompilerServices.Unsafe.dll',
+        'System.Threading.Tasks.Extensions.dll',
+        'WakeOnLanLibrary.dll'
     )
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
@@ -103,13 +105,23 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            # Tags = @()
+            Tags = @(
+                'WakeOnLan',
+                'Networking',
+                'Automation',
+                'PowerShell',
+                'RemoteManagement',
+                'WOL',
+                'NetworkTools',
+                'SystemAdministration',
+                'Infrastructure'
+            )
 
             # A URL to the license for this module.
             # LicenseUri = ''
 
             # A URL to the main website for this project.
-            # ProjectUri = ''
+             ProjectUri = 'https://github.com/LarryWisherMan/WakeOnLan'
 
             # A URL to an icon representing this module.
             # IconUri = ''

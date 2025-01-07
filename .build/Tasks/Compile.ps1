@@ -63,7 +63,7 @@ task compile {
     $null = dotnet-gitversion /updateassemblyinfo
 
     dotnet build "$ProjectPath\WakeOnLan.sln" `
-        --configuration Release --output "$BuiltModuleBase\bin"
+        --configuration Release --output "$BuiltModuleBase"
 }
 
 
@@ -82,4 +82,9 @@ task pester_tests {
 task publish_artifacts {
     Write-Host "Publishing artifacts..." -ForegroundColor Green
     # Logic to publish to Azure Artifacts or other locations
+}
+
+task install_xmldoc2cmdletdoc {
+    Write-Host "Ensuring XmlDoc2CmdletDoc is installed..." -ForegroundColor Green
+    dotnet tool install --global XmlDoc2CmdletDoc
 }
