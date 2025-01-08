@@ -9,13 +9,15 @@ using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
 using WakeOnLanLibrary.Core.UseCases;
-using WakeOnLanLibrary.Core.Validators;
+using WakeOnLanLibrary.Core.Validation;
+using WakeOnLanLibrary.Core.ValidationStrategies;
 using WakeOnLanLibrary.Infrastructure.Builders;
 using WakeOnLanLibrary.Infrastructure.Caching;
 using WakeOnLanLibrary.Infrastructure.Factories;
 using WakeOnLanLibrary.Infrastructure.Helpers;
 using WakeOnLanLibrary.Infrastructure.Monitoring;
 using WakeOnLanLibrary.Infrastructure.Services;
+using WakeOnLanLibrary.Infrastructure.ValidationStrategies;
 
 namespace WakeOnLanLibrary.Shared.Extensions
 {
@@ -42,7 +44,7 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
             // Helpers
             services.AddSingleton<INameIpValidator, NameIpValidator>();
-            services.AddSingleton<IMacAddressHelper, MacAddressHelper>();
+            services.AddSingleton<IMacAddressHelper, MacAddressValidator>();
 
             return services;
         }
