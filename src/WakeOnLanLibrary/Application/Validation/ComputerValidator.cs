@@ -1,8 +1,8 @@
 using System;
 using WakeOnLanLibrary.Application.Interfaces.Validation;
-using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
+using WakeOnLanLibrary.Core.Validation;
 
 namespace WakeOnLanLibrary.Application.Validation
 {
