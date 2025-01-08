@@ -1,4 +1,4 @@
-﻿namespace WakeOnLanLibrary.Application.Interfaces.Validation
+﻿namespace WakeOnLanLibrary.Core.Interfaces.Validation
 {
     public interface INameIpValidator
     {

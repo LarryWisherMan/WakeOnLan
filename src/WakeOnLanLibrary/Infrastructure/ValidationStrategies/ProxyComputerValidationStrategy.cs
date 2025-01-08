@@ -1,8 +1,8 @@
 ﻿using System;
 using WakeOnLanLibrary.Application.Interfaces.Helpers;
-using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
+using WakeOnLanLibrary.Core.Interfaces.Validation;
 
 public class ProxyComputerValidationStrategy : IValidationStrategy<ProxyComputer>
 {
@@ -15,6 +15,15 @@ public class ProxyComputerValidationStrategy : IValidationStrategy<ProxyComputer
 
     public ValidationResult Validate(ProxyComputer proxy)
     {
+        if (proxy == null)
+        {
+            return new ValidationResult
+            {
+                IsValid = false,
+                Message = "Proxy computer cannot be null."
+            };
+        }
+
         if (string.IsNullOrWhiteSpace(proxy.Name))
         {
             return new ValidationResult
@@ -24,13 +33,24 @@ public class ProxyComputerValidationStrategy : IValidationStrategy<ProxyComputer
             };
         }
 
-        // Use INetworkHelper to check if the proxy is online
-        if (!_networkHelper.IsComputerOnlineAsync(proxy.Name).Result)
+        try
+        {
+            // Use INetworkHelper to check if the proxy is online
+            if (!_networkHelper.IsComputerOnlineAsync(proxy.Name).GetAwaiter().GetResult())
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Proxy computer is not reachable."
+                };
+            }
+        }
+        catch (Exception ex)
         {
             return new ValidationResult
             {
                 IsValid = false,
-                Message = "Proxy computer is not reachable."
+                Message = $"An error occurred while checking if the proxy computer is reachable: {ex.Message}"
             };
         }
 
@@ -41,4 +61,5 @@ public class ProxyComputerValidationStrategy : IValidationStrategy<ProxyComputer
         };
     }
 }
+
 

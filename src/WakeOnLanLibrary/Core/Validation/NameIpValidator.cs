@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using WakeOnLanLibrary.Application.Interfaces.Validation;
+using WakeOnLanLibrary.Core.Interfaces.Validation;
 
 public class NameIpValidator : INameIpValidator
 {

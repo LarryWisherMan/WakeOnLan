@@ -1,8 +1,8 @@
 ﻿using System;
 using WakeOnLanLibrary.Application.Interfaces.Helpers;
-using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
+using WakeOnLanLibrary.Core.Interfaces.Validation;
 
 public class TargetComputerValidationStrategy : IValidationStrategy<TargetComputer>
 {
@@ -17,6 +17,15 @@ public class TargetComputerValidationStrategy : IValidationStrategy<TargetComput
 
     public ValidationResult Validate(TargetComputer target)
     {
+        if (target == null)
+        {
+            return new ValidationResult
+            {
+                IsValid = false,
+                Message = "Target computer cannot be null."
+            };
+        }
+
         if (string.IsNullOrWhiteSpace(target.Name))
         {
             return new ValidationResult
@@ -36,12 +45,23 @@ public class TargetComputerValidationStrategy : IValidationStrategy<TargetComput
         }
 
         // Use INetworkHelper to check if the target is online
-        if (_networkHelper.IsComputerOnlineAsync(target.Name).Result)
+        try
+        {
+            if (_networkHelper.IsComputerOnlineAsync(target.Name).GetAwaiter().GetResult())
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Target computer is already online."
+                };
+            }
+        }
+        catch (Exception ex)
         {
             return new ValidationResult
             {
                 IsValid = false,
-                Message = "Target computer is already online."
+                Message = $"An error occurred while checking if the target computer is online: {ex.Message}"
             };
         }
 
@@ -52,3 +72,4 @@ public class TargetComputerValidationStrategy : IValidationStrategy<TargetComput
         };
     }
 }
+

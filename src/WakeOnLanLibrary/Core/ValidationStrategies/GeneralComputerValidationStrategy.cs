@@ -1,7 +1,7 @@
 ﻿using System;
-using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
+using WakeOnLanLibrary.Core.Interfaces.Validation;
 
 public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
 {
@@ -23,7 +23,6 @@ public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
             };
         }
 
-        // Ensure the Name property is provided
         if (string.IsNullOrWhiteSpace(computer.Name))
         {
             return new ValidationResult
@@ -33,9 +32,7 @@ public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
             };
         }
 
-        // Validate the Name as either a valid computer name or IP address
-        if (!_nameIpValidator.IsValidComputerName(computer.Name) &&
-            !_nameIpValidator.IsValidIpAddress(computer.Name))
+        if (!IsNameOrIpValid(computer.Name))
         {
             return new ValidationResult
             {
@@ -44,7 +41,15 @@ public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
             };
         }
 
-        // If all checks pass
-        return new ValidationResult { IsValid = true, Message = "Validation passed." };
+        return new ValidationResult
+        {
+            IsValid = true,
+            Message = "Validation passed."
+        };
+    }
+
+    private bool IsNameOrIpValid(string name)
+    {
+        return _nameIpValidator.IsValidComputerName(name) || _nameIpValidator.IsValidIpAddress(name);
     }
 }

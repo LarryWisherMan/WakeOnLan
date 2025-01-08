@@ -1,47 +1,51 @@
+using System;
 using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
-using WakeOnLanLibrary.Core.Validators;
+using WakeOnLanLibrary.Core.Interfaces.Validation;
 
-
-namespace WakeOnLanLibrary.Infrastructure.Services
+namespace WakeOnLanLibrary.Application.Validation
 {
-
+    /// <summary>
+    /// Orchestrates the validation of different types of computer objects.
+    /// </summary>
     public class ComputerValidator : IComputerValidator
     {
-        private readonly CompositeValidator<Computer> _generalValidator;
-        private readonly CompositeValidator<TargetComputer> _targetValidator;
-        private readonly CompositeValidator<ProxyComputer> _proxyValidator;
+        private readonly IValidatorFactory _validatorFactory;
 
-        public ComputerValidator(
-            CompositeValidator<Computer> generalValidator,
-            CompositeValidator<TargetComputer> targetValidator,
-            CompositeValidator<ProxyComputer> proxyValidator)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ComputerValidator"/> class.
+        /// </summary>
+        /// <param name="validatorFactory">The factory for retrieving validators.</param>
+        public ComputerValidator(IValidatorFactory validatorFactory)
         {
-            _generalValidator = generalValidator;
-            _targetValidator = targetValidator;
-            _proxyValidator = proxyValidator;
+            _validatorFactory = validatorFactory ?? throw new ArgumentNullException(nameof(validatorFactory));
         }
 
+        /// <summary>
+        /// Validates the specified computer object using the appropriate validator.
+        /// </summary>
+        /// <typeparam name="TComputer">The type of computer to validate.</typeparam>
+        /// <param name="computer">The computer object to validate.</param>
+        /// <returns>
+        /// A <see cref="ValidationResult"/> indicating whether the validation succeeded or failed.
+        /// </returns>
         public ValidationResult Validate<TComputer>(TComputer computer) where TComputer : Computer
         {
-            // Perform general validation first
-            var generalValidation = _generalValidator.Validate(computer);
-            if (!generalValidation.IsValid)
+            if (computer == null)
             {
-                return generalValidation;
+                throw new ArgumentNullException(nameof(computer), "The computer object cannot be null.");
             }
 
-            // Perform specific validation
-            return computer switch
-            {
-                TargetComputer target => _targetValidator.Validate(target),
-                ProxyComputer proxy => _proxyValidator.Validate(proxy),
-                _ => new ValidationResult { IsValid = true, Message = "Validation passed." }
-            };
+            // Retrieve the appropriate composite validator for the computer type
+            var validator = _validatorFactory.GetValidator<TComputer>();
+
+            // Validate the computer object
+            return validator.Validate(computer);
         }
     }
 }
+
 
 //public class ComputerValidator : IComputerValidator
 //{
