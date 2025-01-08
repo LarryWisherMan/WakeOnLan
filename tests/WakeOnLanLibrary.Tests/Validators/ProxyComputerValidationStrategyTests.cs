@@ -58,13 +58,47 @@ namespace WakeOnLanLibrary.Tests.Validators
         }
 
         [Fact]
-        public void Validate_WhenProxyIsReachable_ReturnsValidResult()
+        public void Validate_WhenProxyIsReachableButWsmanUnavailable_ReturnsInvalidResult()
         {
             using var mock = AutoMock.GetLoose();
             var networkHelperMock = mock.Mock<INetworkHelper>();
             networkHelperMock
                 .Setup(x => x.IsComputerOnlineAsync(It.IsAny<string>(), 5000))
-                .ReturnsAsync(true);
+                .ReturnsAsync(true); // Simulate the proxy is reachable
+            networkHelperMock
+                .Setup(x => x.IsWsmanAvailableAsync(It.IsAny<string>()))
+                .ReturnsAsync(false); // Simulate WSMan is unavailable
+
+            var strategy = mock.Create<ProxyComputerValidationStrategy>();
+            var proxy = new ProxyComputer { Name = "Proxy01" };
+
+            var result = strategy.Validate(proxy);
+
+            Assert.False(result.IsValid);
+            Assert.Equal("Proxy computer does not have WSMan available.", result.Message);
+
+            // Verify the network helper was called
+            networkHelperMock.Verify(
+                x => x.IsComputerOnlineAsync(proxy.Name, 5000),
+                Times.Once
+            );
+            networkHelperMock.Verify(
+                x => x.IsWsmanAvailableAsync(proxy.Name),
+                Times.Once
+            );
+        }
+
+        [Fact]
+        public void Validate_WhenProxyIsReachableAndWsmanAvailable_ReturnsValidResult()
+        {
+            using var mock = AutoMock.GetLoose();
+            var networkHelperMock = mock.Mock<INetworkHelper>();
+            networkHelperMock
+                .Setup(x => x.IsComputerOnlineAsync(It.IsAny<string>(), 5000))
+                .ReturnsAsync(true); // Simulate the proxy is reachable
+            networkHelperMock
+                .Setup(x => x.IsWsmanAvailableAsync(It.IsAny<string>()))
+                .ReturnsAsync(true); // Simulate WSMan is available
 
             var strategy = mock.Create<ProxyComputerValidationStrategy>();
             var proxy = new ProxyComputer { Name = "Proxy01" };
@@ -77,6 +111,10 @@ namespace WakeOnLanLibrary.Tests.Validators
             // Verify the network helper was called
             networkHelperMock.Verify(
                 x => x.IsComputerOnlineAsync(proxy.Name, 5000),
+                Times.Once
+            );
+            networkHelperMock.Verify(
+                x => x.IsWsmanAvailableAsync(proxy.Name),
                 Times.Once
             );
         }

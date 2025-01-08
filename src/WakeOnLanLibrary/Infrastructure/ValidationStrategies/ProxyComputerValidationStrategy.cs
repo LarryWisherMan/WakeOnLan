@@ -37,7 +37,7 @@ namespace WakeOnLanLibrary.Infrastructure.ValidationStrategies
 
             try
             {
-                // Use INetworkHelper to check if the proxy is online
+                // Check if the proxy is online
                 if (!_networkHelper.IsComputerOnlineAsync(proxy.Name).GetAwaiter().GetResult())
                 {
                     return new ValidationResult
@@ -46,13 +46,23 @@ namespace WakeOnLanLibrary.Infrastructure.ValidationStrategies
                         Message = "Proxy computer is not reachable."
                     };
                 }
+
+                // Check if WSMan is available
+                if (!_networkHelper.IsWsmanAvailableAsync(proxy.Name).GetAwaiter().GetResult())
+                {
+                    return new ValidationResult
+                    {
+                        IsValid = false,
+                        Message = "Proxy computer does not have WSMan available."
+                    };
+                }
             }
             catch (Exception ex)
             {
                 return new ValidationResult
                 {
                     IsValid = false,
-                    Message = $"An error occurred while checking if the proxy computer is reachable: {ex.Message}"
+                    Message = $"An error occurred while validating the proxy computer: {ex.Message}"
                 };
             }
 
@@ -63,8 +73,6 @@ namespace WakeOnLanLibrary.Infrastructure.ValidationStrategies
             };
         }
     }
-
-
 }
 
 
