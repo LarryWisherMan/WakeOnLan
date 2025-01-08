@@ -1,55 +1,64 @@
 ﻿using System;
-using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
+using WakeOnLanLibrary.Core.Validation;
 
-public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
+
+namespace WakeOnLanLibrary.Core.ValidationStrategies
 {
-    private readonly INameIpValidator _nameIpValidator;
-
-    public GeneralComputerValidationStrategy(INameIpValidator nameIpValidator)
+    public class GeneralComputerValidationStrategy : IValidationStrategy<Computer>
     {
-        _nameIpValidator = nameIpValidator ?? throw new ArgumentNullException(nameof(nameIpValidator));
-    }
+        private readonly INameIpValidator _nameIpValidator;
 
-    public ValidationResult Validate(Computer computer)
-    {
-        if (computer == null)
+        public GeneralComputerValidationStrategy(INameIpValidator nameIpValidator)
         {
+            _nameIpValidator = nameIpValidator ?? throw new ArgumentNullException(nameof(nameIpValidator));
+        }
+
+        public ValidationResult Validate(Computer computer)
+        {
+            if (computer == null)
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Computer object cannot be null."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(computer.Name))
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Computer name must be provided."
+                };
+            }
+
+            if (!IsNameOrIpValid(computer.Name))
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = $"Invalid computer name or IP address: '{computer.Name}'."
+                };
+            }
+
             return new ValidationResult
             {
-                IsValid = false,
-                Message = "Computer object cannot be null."
+                IsValid = true,
+                Message = "Validation passed."
             };
         }
 
-        if (string.IsNullOrWhiteSpace(computer.Name))
+        private bool IsNameOrIpValid(string name)
         {
-            return new ValidationResult
-            {
-                IsValid = false,
-                Message = "Computer name must be provided."
-            };
+            return _nameIpValidator.IsValidComputerName(name) || _nameIpValidator.IsValidIpAddress(name);
         }
-
-        if (!IsNameOrIpValid(computer.Name))
-        {
-            return new ValidationResult
-            {
-                IsValid = false,
-                Message = $"Invalid computer name or IP address: '{computer.Name}'."
-            };
-        }
-
-        return new ValidationResult
-        {
-            IsValid = true,
-            Message = "Validation passed."
-        };
     }
 
-    private bool IsNameOrIpValid(string name)
-    {
-        return _nameIpValidator.IsValidComputerName(name) || _nameIpValidator.IsValidIpAddress(name);
-    }
+
 }
+
+
+

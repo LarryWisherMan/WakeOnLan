@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
 
-namespace WakeOnLanLibrary.Core.Validators
+namespace WakeOnLanLibrary.Core.Validation
 {
     /// <summary>
     /// A composite validator that executes a collection of validation strategies for a specific type.
@@ -13,6 +12,11 @@ namespace WakeOnLanLibrary.Core.Validators
     public class CompositeValidator<T> where T : Computer
     {
         private readonly IReadOnlyList<IValidationStrategy<T>> _validationStrategies;
+
+        /// <summary>
+        /// Gets the validation strategies used by the composite validator.
+        /// </summary>
+        public IReadOnlyList<IValidationStrategy<T>> Strategies => _validationStrategies;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CompositeValidator{T}"/> class.
@@ -33,7 +37,7 @@ namespace WakeOnLanLibrary.Core.Validators
         /// </summary>
         /// <param name="entity">The object to validate.</param>
         /// <returns>The first failed <see cref="ValidationResult"/>, or success if all validations pass.</returns>
-        public ValidationResult Validate(T entity)
+        public virtual ValidationResult Validate(T entity)
         {
             if (entity == null)
             {

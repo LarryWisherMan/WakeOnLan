@@ -1,5 +1,5 @@
 ﻿using WakeOnLanLibrary.Core.Entities;
-using WakeOnLanLibrary.Core.Validators;
+using WakeOnLanLibrary.Core.Validation;
 
 namespace WakeOnLanLibrary.Core.Interfaces.Validation
 {
