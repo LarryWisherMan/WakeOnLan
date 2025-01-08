@@ -7,6 +7,8 @@ using WakeOnLanLibrary.Application.Models;
 using WakeOnLanLibrary.Application.Services;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces;
+using WakeOnLanLibrary.Core.Validation;
+
 
 namespace WakeOnLanLibrary.Tests
 {
