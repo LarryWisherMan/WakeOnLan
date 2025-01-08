@@ -11,3 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 - Added support for WOL requests with single and multiple targets.
 - Implemented monitoring and log retrieval features.
+- ProxyComputer Validation Test including:
+  - Test Ping
+  - Test WSMAN
