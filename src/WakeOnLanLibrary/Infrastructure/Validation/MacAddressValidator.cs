@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using WakeOnLanLibrary.Application.Interfaces.Helpers;
+using WakeOnLanLibrary.Application.Interfaces.Validation;
 
-public class MacAddressHelper : IMacAddressHelper
+public class MacAddressValidator : IMacAddressHelper
 {
     private static readonly Regex MacAddressRegex = new Regex(
         @"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$",

@@ -1,75 +1,81 @@
 ﻿using System;
 using WakeOnLanLibrary.Application.Interfaces.Helpers;
-using WakeOnLanLibrary.Application.Models;
+using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
+using WakeOnLanLibrary.Core.Validation;
 
-public class TargetComputerValidationStrategy : IValidationStrategy<TargetComputer>
+namespace WakeOnLanLibrary.Infrastructure.ValidationStrategies
 {
-    private readonly INetworkHelper _networkHelper;
-    private readonly IMacAddressHelper _macAddressHelper;
-
-    public TargetComputerValidationStrategy(INetworkHelper networkHelper, IMacAddressHelper macAddressHelper)
+    public class TargetComputerValidationStrategy : IValidationStrategy<TargetComputer>
     {
-        _networkHelper = networkHelper ?? throw new ArgumentNullException(nameof(networkHelper));
-        _macAddressHelper = macAddressHelper ?? throw new ArgumentNullException(nameof(macAddressHelper));
-    }
+        private readonly INetworkHelper _networkHelper;
+        private readonly IMacAddressHelper _macAddressHelper;
 
-    public ValidationResult Validate(TargetComputer target)
-    {
-        if (target == null)
+        public TargetComputerValidationStrategy(INetworkHelper networkHelper, IMacAddressHelper macAddressHelper)
         {
-            return new ValidationResult
-            {
-                IsValid = false,
-                Message = "Target computer cannot be null."
-            };
+            _networkHelper = networkHelper ?? throw new ArgumentNullException(nameof(networkHelper));
+            _macAddressHelper = macAddressHelper ?? throw new ArgumentNullException(nameof(macAddressHelper));
         }
 
-        if (string.IsNullOrWhiteSpace(target.Name))
+        public ValidationResult Validate(TargetComputer target)
         {
-            return new ValidationResult
-            {
-                IsValid = false,
-                Message = "Target computer name cannot be null or empty."
-            };
-        }
-
-        if (!_macAddressHelper.IsValidMacAddress(target.MacAddress))
-        {
-            return new ValidationResult
-            {
-                IsValid = false,
-                Message = "Invalid MAC address format."
-            };
-        }
-
-        // Use INetworkHelper to check if the target is online
-        try
-        {
-            if (_networkHelper.IsComputerOnlineAsync(target.Name).GetAwaiter().GetResult())
+            if (target == null)
             {
                 return new ValidationResult
                 {
                     IsValid = false,
-                    Message = "Target computer is already online."
+                    Message = "Target computer cannot be null."
                 };
             }
-        }
-        catch (Exception ex)
-        {
+
+            if (string.IsNullOrWhiteSpace(target.Name))
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Target computer name cannot be null or empty."
+                };
+            }
+
+            if (!_macAddressHelper.IsValidMacAddress(target.MacAddress))
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = "Invalid MAC address format."
+                };
+            }
+
+            // Use INetworkHelper to check if the target is online
+            try
+            {
+                if (_networkHelper.IsComputerOnlineAsync(target.Name).GetAwaiter().GetResult())
+                {
+                    return new ValidationResult
+                    {
+                        IsValid = false,
+                        Message = "Target computer is already online."
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ValidationResult
+                {
+                    IsValid = false,
+                    Message = $"An error occurred while checking if the target computer is online: {ex.Message}"
+                };
+            }
+
             return new ValidationResult
             {
-                IsValid = false,
-                Message = $"An error occurred while checking if the target computer is online: {ex.Message}"
+                IsValid = true,
+                Message = "Target computer validation passed."
             };
         }
-
-        return new ValidationResult
-        {
-            IsValid = true,
-            Message = "Target computer validation passed."
-        };
     }
+
+
 }
 

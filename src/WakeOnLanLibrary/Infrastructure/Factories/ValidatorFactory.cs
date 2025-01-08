@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using WakeOnLanLibrary.Core.Entities;
 using WakeOnLanLibrary.Core.Interfaces.Validation;
-using WakeOnLanLibrary.Core.Validators;
+using WakeOnLanLibrary.Core.Validation;
 
 namespace WakeOnLanLibrary.Infrastructure.Factories
 {
