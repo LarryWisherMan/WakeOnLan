@@ -1,5 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using WakeOnLanLibrary.Application.Interfaces;
+using WakeOnLanLibrary.Application.Interfaces.Execution;
 using WakeOnLanLibrary.Application.Interfaces.Helpers;
 using WakeOnLanLibrary.Application.Interfaces.Validation;
 using WakeOnLanLibrary.Application.Models;
@@ -13,9 +15,11 @@ using WakeOnLanLibrary.Core.Validation;
 using WakeOnLanLibrary.Core.ValidationStrategies;
 using WakeOnLanLibrary.Infrastructure.Builders;
 using WakeOnLanLibrary.Infrastructure.Caching;
+using WakeOnLanLibrary.Infrastructure.Execution;
 using WakeOnLanLibrary.Infrastructure.Factories;
 using WakeOnLanLibrary.Infrastructure.Helpers;
 using WakeOnLanLibrary.Infrastructure.Monitoring;
+using WakeOnLanLibrary.Infrastructure.Runspaces;
 using WakeOnLanLibrary.Infrastructure.Services;
 using WakeOnLanLibrary.Infrastructure.ValidationStrategies;
 
@@ -128,6 +132,18 @@ namespace WakeOnLanLibrary.Shared.Extensions
             return services;
         }
 
+        public static IServiceCollection AddExecutionServices(this IServiceCollection services)
+        {
+            services.AddTransient<IPowerShellExecutor, PowerShellExecutor>();
+            services.AddTransient<Func<IPowerShellExecutor>>(provider =>
+            {
+                return () => provider.GetRequiredService<IPowerShellExecutor>();
+            });
+
+            return services;
+        }
+
+
         /// <summary>
         /// Registers all services required for the WakeOnLanLibrary.
         /// </summary>
@@ -141,8 +157,11 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
             // Other Services
             services.AddSingleton<IScriptBuilder, ScriptBuilder>();
+            services.AddExecutionServices();
             services.AddSingleton<IRemotePowerShellExecutor, RemotePowerShellExecutor>();
             services.AddSingleton<IProxyRequestProcessor, ProxyRequestProcessor>();
+            services.AddSingleton<IRunspacePool, RunspacePoolWrapper>();
+
             services.AddSingleton<ITaskRunner, TaskRunner>();
             services.AddSingleton<IMagicPacketSender, ProxyMagicPacketSender>();
             services.AddSingleton<IComputerFactory, ComputerFactory>();
