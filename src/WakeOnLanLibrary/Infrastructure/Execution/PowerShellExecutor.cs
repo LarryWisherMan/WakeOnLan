@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Threading.Tasks;
+using WakeOnLanLibrary.Application.Common;
 using WakeOnLanLibrary.Application.Interfaces.Execution;
 
 namespace WakeOnLanLibrary.Infrastructure.Execution
@@ -9,10 +11,19 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
     public class PowerShellExecutor : IPowerShellExecutor, IDisposable
     {
         private readonly PowerShell _powerShell;
+        private readonly ConcurrentBag<PowerShellError> _errorCollection;
 
         public PowerShellExecutor()
         {
             _powerShell = PowerShell.Create();
+            _errorCollection = new ConcurrentBag<PowerShellError>();
+
+            // Subscribe to the error stream
+            _powerShell.Streams.Error.DataAdded += (sender, e) =>
+            {
+                var errorRecord = ((PSDataCollection<ErrorRecord>)sender)[e.Index];
+                _errorCollection.Add(ConvertToPowerShellError(errorRecord));
+            };
         }
 
         public void AddScript(string script)
@@ -27,7 +38,9 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
         {
             try
             {
-                return await Task.Run(() => _powerShell.Invoke());
+                var results = await Task.Run(() => _powerShell.Invoke());
+
+                return results;
             }
             catch (Exception ex)
             {
@@ -35,13 +48,22 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
             }
         }
 
-        public bool HadErrors => _powerShell.HadErrors;
+        public bool HadErrors => _errorCollection.Count > 0;
 
-        public IEnumerable<ErrorRecord> Errors => _powerShell.Streams.Error.ReadAll();
+        public IEnumerable<PowerShellError> Errors => _errorCollection;
 
         public void Dispose()
         {
             _powerShell?.Dispose();
+        }
+
+        private PowerShellError ConvertToPowerShellError(ErrorRecord errorRecord)
+        {
+            return new PowerShellError(
+                message: errorRecord.Exception?.Message ?? "Unknown error",
+                errorId: errorRecord.FullyQualifiedErrorId,
+                targetObject: errorRecord.TargetObject?.ToString() ?? "Unknown target"
+            );
         }
     }
 }

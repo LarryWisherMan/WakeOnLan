@@ -16,6 +16,10 @@ namespace WakeOnLanLibrary.Infrastructure.Runspaces
             _runspacePool = runspacePool ?? throw new ArgumentNullException(nameof(runspacePool));
         }
 
+        //CustomMembers
+        public RunspacePoolState GetRunspaceState() => _runspacePool.RunspacePoolStateInfo.State;
+
+
         public TimeSpan CleanupInterval
         {
             get => _runspacePool.CleanupInterval;
@@ -64,6 +68,11 @@ namespace WakeOnLanLibrary.Infrastructure.Runspaces
         {
             add => _runspacePool.StateChanged += value;
             remove => _runspacePool.StateChanged -= value;
+        }
+
+        public RunspacePool GetInternalRunspacePool()
+        {
+            return _runspacePool;
         }
     }
 

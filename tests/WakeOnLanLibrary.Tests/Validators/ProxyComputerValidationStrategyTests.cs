@@ -134,7 +134,7 @@ namespace WakeOnLanLibrary.Tests.Validators
             var result = strategy.Validate(proxy);
 
             Assert.False(result.IsValid);
-            Assert.Contains("An error occurred while checking if the proxy computer is reachable", result.Message);
+            Assert.Contains("An error occurred while validating the proxy computer: Network error", result.Message);
             Assert.Contains("Network error", result.Message);
 
             // Verify the network helper was called

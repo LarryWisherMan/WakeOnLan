@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Management.Automation;
 using System.Threading.Tasks;
+using WakeOnLanLibrary.Application.Common;
 
 namespace WakeOnLanLibrary.Application.Interfaces.Execution
 {
@@ -9,7 +10,7 @@ namespace WakeOnLanLibrary.Application.Interfaces.Execution
         void AddScript(string script);
         Task<ICollection<PSObject>> InvokeAsync();
         bool HadErrors { get; }
-        IEnumerable<ErrorRecord> Errors { get; }
+        IEnumerable<PowerShellError> Errors { get; }
     }
 }
 

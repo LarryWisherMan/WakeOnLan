@@ -1,122 +1,284 @@
-﻿using Autofac;
-using Autofac.Extras.Moq;
-using Moq;
+﻿using Moq;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
+using WakeOnLanLibrary.Application.Common;
 using WakeOnLanLibrary.Application.Interfaces.Execution;
 using WakeOnLanLibrary.Core.Interfaces;
 using WakeOnLanLibrary.Infrastructure.Execution;
-using WakeOnLanLibrary.Infrastructure.Runspaces;
 
 namespace WakeOnLanLibrary.Tests.Infrastructure.Execution
 {
+
     public class RemotePowerShellExecutorTests
     {
         [Fact]
-        public async Task ExecuteAsync_WhenRunspacePoolIsNull_ThrowsArgumentNullException()
+        public async Task ExecuteAsync_ThrowsArgumentNullException_WhenRunspacePoolIsNull()
         {
-            using var mock = AutoMock.GetLoose();
-            var executor = mock.Create<RemotePowerShellExecutor>();
+            // Arrange
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.ExecuteAsync(null, "ValidScript"));
-        }
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
 
-        [Fact]
-        public async Task ExecuteAsync_WhenScriptIsNullOrEmpty_ThrowsArgumentNullException()
-        {
-            using var mock = AutoMock.GetLoose();
-            var executor = mock.Create<RemotePowerShellExecutor>();
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                executor.ExecuteAsync(null, "Test-Script"));
 
-            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.ExecuteAsync(Mock.Of<IRunspacePool>(), null));
-        }
-
-        [Fact]
-        public async Task ExecuteAsync_WhenRunspacePoolStateIsNotOpened_ThrowsInvalidOperationException()
-        {
-            using var mock = AutoMock.GetLoose();
-            var runspacePoolMock = mock.Mock<IRunspacePool>();
-            runspacePoolMock.Setup(rp => rp.RunspacePoolStateInfo).Returns(new RunspacePoolStateInfo(RunspacePoolState.Closed, null));
-
-            var executor = mock.Create<RemotePowerShellExecutor>();
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                executor.ExecuteAsync(runspacePoolMock.Object, "ValidScript"));
+            Assert.Equal("runspacePool", exception.ParamName);
         }
 
 
         [Fact]
-        public async Task ExecuteAsync_WhenPowerShellHasErrors_ThrowsInvalidOperationException()
+        public async Task ExecuteAsync_ThrowsArgumentNullException_WhenScriptIsNull()
         {
-            using var mock = AutoMock.GetLoose();
+            // Arrange
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
 
-            // Mock IPowerShellExecutor
-            var powerShellExecutorMock = mock.Mock<IPowerShellExecutor>();
-            powerShellExecutorMock.Setup(ps => ps.InvokeAsync()).ReturnsAsync(new List<PSObject>());
-            powerShellExecutorMock.Setup(ps => ps.HadErrors).Returns(true);
-            powerShellExecutorMock.Setup(ps => ps.Errors).Returns(new List<ErrorRecord>
-    {
-        new ErrorRecord(new Exception("Error1"), "ErrorId1", ErrorCategory.InvalidOperation, null)
-    });
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                executor.ExecuteAsync(mockRunspacePool.Object, null));
+
+            Assert.Equal("script", exception.ParamName);
+        }
+
+
+        [Fact]
+        public async Task ExecuteAsync_ThrowsInvalidOperationException_WhenRunspacePoolIsNotOpened()
+        {
+            // Arrange
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool
+                .Setup(r => r.GetRunspaceState())
+                .Returns(RunspacePoolState.Closed);
+
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
+
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script"));
+
+            Assert.Equal("RunspacePool is not in an open state.", exception.Message);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ExecutesScriptSuccessfully_WhenInputsAreValid()
+        {
+            // Arrange
 
             // Mock IRunspacePool
-            var runspacePoolMock = mock.Mock<IRunspacePool>();
-            runspacePoolMock.Setup(rp => rp.RunspacePoolStateInfo).Returns(new RunspacePoolStateInfo(RunspacePoolState.Opened, null));
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool
+                .Setup(r => r.GetRunspaceState())
+                .Returns(RunspacePoolState.Opened);
 
-            var executor = mock.Create<RemotePowerShellExecutor>();
+            // Mock IPowerShellExecutor
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            mockPowerShellExecutor
+                .Setup(p => p.InvokeAsync())
+                .ReturnsAsync(new List<PSObject>()); // Simulate successful execution
 
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                executor.ExecuteAsync(runspacePoolMock.Object, "ValidScript"));
+            // Mock the factory to return the mocked executor
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory
+                .Setup(factory => factory())
+                .Returns(mockPowerShellExecutor.Object);
 
-            Assert.Contains("RunspacePool is not in an open state.", exception.Message);
+            // Create the RemotePowerShellExecutor with mocked dependencies
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act
+            await executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script");
+
+            // Assert
+            mockPowerShellExecutor.Verify(p => p.AddScript("Test-Script"), Times.Once);
+            mockPowerShellExecutor.Verify(p => p.InvokeAsync(), Times.Once);
         }
 
 
         [Fact]
-        public async Task ExecuteAsync_WhenExceptionOccurs_ThrowsInvalidOperationException()
+        public async Task ExecuteAsync_ThrowsInvalidOperationException_WhenErrorsOccurDuringExecution()
         {
-            using var mock = AutoMock.GetLoose(config =>
-            {
-                // Register the Func<IPowerShellExecutor> factory
-                config.RegisterInstance<Func<IPowerShellExecutor>>(() =>
+            // Arrange
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+
+            // Mock InvokeAsync to return an empty result set
+            mockPowerShellExecutor
+                .Setup(p => p.InvokeAsync())
+                .ReturnsAsync(new List<PSObject>());
+
+            // Mock HadErrors to return true, indicating errors occurred
+            mockPowerShellExecutor
+                .SetupGet(p => p.HadErrors)
+                .Returns(true);
+
+            // Mock Errors to return a list of PowerShellError objects
+            mockPowerShellExecutor
+                .SetupGet(p => p.Errors)
+                .Returns(new List<PowerShellError>
                 {
-                    var powerShellExecutorMock = new Mock<IPowerShellExecutor>();
-                    powerShellExecutorMock
-                        .Setup(ps => ps.InvokeAsync())
-                        .ThrowsAsync(new Exception("Test Exception"));
-                    return powerShellExecutorMock.Object;
+            new PowerShellError("Test Error 1", "ErrorId1", "Target1"),
+            new PowerShellError("Test Error 2", "ErrorId2", "Target2")
                 });
+
+            // Mock the PowerShellExecutor factory
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory
+                .Setup(factory => factory())
+                .Returns(mockPowerShellExecutor.Object);
+
+            // Mock the RunspacePool to always return an Opened state
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool
+                .Setup(r => r.GetRunspaceState())
+                .Returns(RunspacePoolState.Opened);
+
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<AggregateException>(() =>
+                executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script"));
+
+            // Assert the exception message contains details about the errors
+            Assert.Contains("Errors occurred during script execution.", exception.Message);
+
+            // Assert that the exception contains the individual errors
+            Assert.Equal(2, exception.InnerExceptions.Count);
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Test Error 1"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("ErrorId1"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Target1"));
+
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Test Error 2"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("ErrorId2"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Target2"));
+        }
+
+
+
+        [Fact]
+        public void Constructor_ThrowsArgumentNullException_WhenFactoryIsNull()
+        {
+            // Act & Assert
+            var exception = Assert.Throws<ArgumentNullException>(() => new RemotePowerShellExecutor(null));
+            Assert.Equal("powerShellExecutorFactory", exception.ParamName);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_DoesNotThrow_WhenExecutionIsSuccessful()
+        {
+            // Arrange
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool.Setup(r => r.GetRunspaceState()).Returns(RunspacePoolState.Opened);
+
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            mockPowerShellExecutor.Setup(p => p.InvokeAsync()).ReturnsAsync(new List<PSObject>());
+
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
+
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act & Assert
+            await executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script");
+        }
+
+
+        [Fact]
+        public async Task ExecuteAsync_ExecutesMultipleScriptsSuccessfully()
+        {
+            // Arrange
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool.Setup(r => r.GetRunspaceState()).Returns(RunspacePoolState.Opened);
+
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            mockPowerShellExecutor.Setup(p => p.InvokeAsync()).ReturnsAsync(new List<PSObject>());
+
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
+
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act
+            await executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script-1");
+            await executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script-2");
+
+            // Assert
+            mockPowerShellExecutor.Verify(p => p.AddScript("Test-Script-1"), Times.Once);
+            mockPowerShellExecutor.Verify(p => p.AddScript("Test-Script-2"), Times.Once);
+            mockPowerShellExecutor.Verify(p => p.InvokeAsync(), Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_ThrowsInvalidOperationException_WhenUnexpectedErrorOccurs()
+        {
+            // Arrange
+            var mockRunspacePool = new Mock<IRunspacePool>();
+            mockRunspacePool.Setup(r => r.GetRunspaceState()).Returns(RunspacePoolState.Opened);
+
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            mockPowerShellExecutor
+                .Setup(p => p.InvokeAsync())
+                .ThrowsAsync(new Exception("Unexpected error"));
+
+            var powerShellExecutorFactory = new Mock<Func<IPowerShellExecutor>>();
+            powerShellExecutorFactory.Setup(factory => factory()).Returns(mockPowerShellExecutor.Object);
+
+            var executor = new RemotePowerShellExecutor(powerShellExecutorFactory.Object);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                executor.ExecuteAsync(mockRunspacePool.Object, "Test-Script"));
+
+            Assert.Contains("An error occurred while executing the PowerShell script.", exception.Message);
+            Assert.NotNull(exception.InnerException);
+            Assert.Contains("Unexpected error", exception.InnerException.Message);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_AggregatesErrorMessagesCorrectly_WhenErrorsOccur()
+        {
+            // Arrange
+            var mockPowerShellExecutor = new Mock<IPowerShellExecutor>();
+            mockPowerShellExecutor.Setup(p => p.InvokeAsync()).ReturnsAsync(new List<PSObject>());
+            mockPowerShellExecutor.Setup(p => p.HadErrors).Returns(true);
+            mockPowerShellExecutor.Setup(p => p.Errors).Returns(new List<PowerShellError>
+            {
+                new PowerShellError("Error 1 occurred", "ErrorId1", "Target1"),
+                new PowerShellError("Error 2 occurred", "ErrorId2", "Target2")
             });
 
-            // Initialize a real RunspacePool with proper configuration
-            RunspacePool runspacePool = null;
-            try
-            {
-                var initialSessionState = InitialSessionState.CreateDefault();
-                runspacePool = RunspaceFactory.CreateRunspacePool(initialSessionState);
-                runspacePool.Open(); // Ensure the pool is opened
+            var executorFactory = new Func<IPowerShellExecutor>(() => mockPowerShellExecutor.Object);
+            var remoteExecutor = new RemotePowerShellExecutor(executorFactory);
 
-                // Wrap the real RunspacePool in the RunspacePoolWrapper
-                var runspacePoolWrapper = new RunspacePoolWrapper(runspacePool);
+            var runspacePool = Mock.Of<IRunspacePool>(r => r.GetRunspaceState() == RunspacePoolState.Opened);
 
-                // Create RemotePowerShellExecutor
-                var executor = mock.Create<RemotePowerShellExecutor>();
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<AggregateException>(() =>
+                remoteExecutor.ExecuteAsync(runspacePool, "Test-Script"));
 
-                // Act & Assert
-                var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                    executor.ExecuteAsync(runspacePoolWrapper, "ValidScript"));
+            // Verify
+            Assert.Equal(2, exception.InnerExceptions.Count);
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Error 1 occurred"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("ErrorId1"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Target1"));
 
-                // Assert that the exception contains the expected message
-                Assert.Contains("An error occurred while executing the PowerShell script", exception.Message);
-            }
-            finally
-            {
-                // Cleanup the RunspacePool
-                runspacePool?.Close();
-                runspacePool?.Dispose();
-            }
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Error 2 occurred"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("ErrorId2"));
+            Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Target2"));
         }
+
 
 
 
     }
+
 }

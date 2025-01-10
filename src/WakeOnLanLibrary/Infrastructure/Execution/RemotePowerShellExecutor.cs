@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Threading.Tasks;
 using WakeOnLanLibrary.Application.Interfaces;
@@ -25,7 +26,7 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
             if (string.IsNullOrWhiteSpace(script))
                 throw new ArgumentNullException(nameof(script), "Script cannot be null or empty.");
 
-            if (runspacePool.RunspacePoolStateInfo.State != RunspacePoolState.Opened)
+            if (runspacePool.GetRunspaceState() != RunspacePoolState.Opened)
                 throw new InvalidOperationException("RunspacePool is not in an open state.");
 
             var powerShellExecutor = _powerShellExecutorFactory();
@@ -37,14 +38,29 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
 
                 if (powerShellExecutor.HadErrors)
                 {
-                    var errorDetails = string.Join(Environment.NewLine, powerShellExecutor.Errors.Select(e => e.ToString()));
-                    throw new InvalidOperationException($"Errors occurred during script execution: {errorDetails}");
+                    var errorMessages = powerShellExecutor.Errors
+                        .Select(error => $"{error.Message} (ID: {error.ErrorId}, Target: {error.TargetObject})")
+                        .ToList();
+
+                    throw new AggregateException("Errors occurred during script execution.",
+                        errorMessages.Select(msg => new InvalidOperationException(msg)).ToArray());
                 }
+            }
+            catch (AggregateException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException("An error occurred while executing the PowerShell script.", ex);
             }
+        }
+
+
+        private string ExtractErrorMessage(ErrorRecord errorRecord)
+        {
+            return $"{errorRecord.Exception?.Message ?? "Unknown exception"} " +
+                   $"(ID: {errorRecord.FullyQualifiedErrorId}, Target: {errorRecord.TargetObject})";
         }
     }
 }

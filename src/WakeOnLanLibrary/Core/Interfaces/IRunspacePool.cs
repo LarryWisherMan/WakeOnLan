@@ -40,6 +40,9 @@ namespace WakeOnLanLibrary.Core.Interfaces
         void SetMinRunspaces(int minRunspaces);
 
         event EventHandler<RunspacePoolStateChangedEventArgs> StateChanged;
+
+        //Custom Members
+        RunspacePoolState GetRunspaceState();
     }
 
 }
