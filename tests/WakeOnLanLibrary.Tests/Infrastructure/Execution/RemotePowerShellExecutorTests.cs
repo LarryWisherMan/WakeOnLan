@@ -276,9 +276,6 @@ namespace WakeOnLanLibrary.Tests.Infrastructure.Execution
             Assert.Contains(exception.InnerExceptions, ex => ex.Message.Contains("Target2"));
         }
 
-
-
-
     }
 
 }

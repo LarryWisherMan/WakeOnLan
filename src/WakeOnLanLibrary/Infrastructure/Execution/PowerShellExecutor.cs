@@ -10,27 +10,17 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
 {
     public class PowerShellExecutor : IPowerShellExecutor, IDisposable
     {
-        private readonly PowerShell _powerShell;
+        private readonly IPowerShell _powerShell;
         private readonly ConcurrentBag<PowerShellError> _errorCollection;
 
-        public PowerShellExecutor()
+        public PowerShellExecutor(IPowerShell powerShell)
         {
-            _powerShell = PowerShell.Create();
+            _powerShell = powerShell ?? throw new ArgumentNullException(nameof(powerShell));
             _errorCollection = new ConcurrentBag<PowerShellError>();
-
-            // Subscribe to the error stream
-            _powerShell.Streams.Error.DataAdded += (sender, e) =>
-            {
-                var errorRecord = ((PSDataCollection<ErrorRecord>)sender)[e.Index];
-                _errorCollection.Add(ConvertToPowerShellError(errorRecord));
-            };
         }
 
         public void AddScript(string script)
         {
-            if (string.IsNullOrWhiteSpace(script))
-                throw new ArgumentNullException(nameof(script), "Script cannot be null or empty.");
-
             _powerShell.AddScript(script);
         }
 
@@ -39,6 +29,11 @@ namespace WakeOnLanLibrary.Infrastructure.Execution
             try
             {
                 var results = await Task.Run(() => _powerShell.Invoke());
+
+                foreach (var error in _powerShell.Errors)
+                {
+                    _errorCollection.Add(ConvertToPowerShellError(error));
+                }
 
                 return results;
             }
