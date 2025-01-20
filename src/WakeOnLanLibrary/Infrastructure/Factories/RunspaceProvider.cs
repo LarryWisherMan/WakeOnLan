@@ -3,6 +3,7 @@
 using System.Management.Automation.Runspaces;
 using WakeOnLanLibrary.Application.Interfaces;
 using WakeOnLanLibrary.Core.Interfaces;
+using WakeOnLanLibrary.Infrastructure.Adapters;
 using WakeOnLanLibrary.Infrastructure.Runspaces;
 
 namespace WakeOnLanLibrary.Infrastructure.Factories
@@ -12,16 +13,23 @@ namespace WakeOnLanLibrary.Infrastructure.Factories
         /// <summary>
         /// Creates a new Runspace connected to a remote computer.
         /// </summary>
-        public Runspace CreateRunspace(WSManConnectionInfo connectionInfo)
+        /// <param name="connectionInfo">The connection info for the remote computer.</param>
+        /// <returns>An instance of <see cref="IRunspace"/> that wraps the created runspace.</returns>
+        public IRunspace CreateRunspace(WSManConnectionInfo connectionInfo)
         {
             if (connectionInfo == null)
                 throw new ArgumentNullException(nameof(connectionInfo), "Connection info cannot be null.");
 
             try
             {
+                // Create the Runspace using the PowerShell SDK
                 var runspace = RunspaceFactory.CreateRunspace(connectionInfo);
+
+                // Open the Runspace to establish the connection
                 runspace.Open();
-                return runspace;
+
+                // Return a wrapper that implements IRunspace
+                return new RunspaceWrapper(runspace);
             }
             catch (Exception ex)
             {

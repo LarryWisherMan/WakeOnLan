@@ -12,8 +12,8 @@ namespace WakeOnLanLibrary.Application.Interfaces
         /// </summary>
         /// <param name="computerName">The name of the computer.</param>
         /// <param name="credentials">Optional credentials for connecting to the computer.</param>
-        /// <returns>A <see cref="Runspace"/> instance.</returns>
-        Runspace GetOrCreateRunspace(string computerName, PSCredential credentials = null);
+        /// <returns>An <see cref="IRunspace"/> instance.</returns>
+        IRunspace GetOrCreateRunspace(string computerName, PSCredential credentials = null);
 
         /// <summary>
         /// Gets or creates a shared runspace pool for a specific proxy computer.

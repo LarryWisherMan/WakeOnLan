@@ -11,13 +11,15 @@ namespace WakeOnLanLibrary.Infrastructure.Services
     {
         private readonly IRunspaceProvider _runspaceProvider;
         private readonly ConcurrentDictionary<string, IRunspacePool> _runspacePools = new();
-        private readonly ConcurrentDictionary<string, Runspace> _runspaces = new();
+        private readonly ConcurrentDictionary<string, IRunspace> _runspaces = new();
         private bool _disposed;
 
         public RunspaceManager(IRunspaceProvider runspaceProvider)
         {
             _runspaceProvider = runspaceProvider ?? throw new ArgumentNullException(nameof(runspaceProvider));
         }
+
+
 
         /// <summary>
         /// Gets or creates a shared runspace pool for a specific proxy computer.
@@ -59,7 +61,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
         /// <summary>
         /// Gets or creates a dedicated runspace for a specific computer.
         /// </summary>
-        public Runspace GetOrCreateRunspace(string computerName, PSCredential credentials = null)
+        public IRunspace GetOrCreateRunspace(string computerName, PSCredential credentials = null)
         {
             if (string.IsNullOrWhiteSpace(computerName))
                 throw new ArgumentNullException(nameof(computerName), "Computer name cannot be null or empty.");
@@ -68,6 +70,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
             {
                 try
                 {
+                    // Create WSManConnectionInfo with the provided details
                     var connectionInfo = new WSManConnectionInfo
                     {
                         ComputerName = computerName,
@@ -75,9 +78,8 @@ namespace WakeOnLanLibrary.Infrastructure.Services
                         AuthenticationMechanism = AuthenticationMechanism.Default
                     };
 
-                    var runspace = _runspaceProvider.CreateRunspace(connectionInfo);
-                    runspace.Open();
-                    return runspace;
+                    // Use IRunspaceProvider to create the runspace
+                    return _runspaceProvider.CreateRunspace(connectionInfo);
                 }
                 catch (Exception ex)
                 {
@@ -117,7 +119,8 @@ namespace WakeOnLanLibrary.Infrastructure.Services
             {
                 try
                 {
-                    if (runspace.RunspaceStateInfo.State == RunspaceState.Opened)
+                    // Use the State property of IRunspace
+                    if (runspace.State == RunspaceState.Opened)
                         runspace.Close();
 
                     runspace.Dispose();
@@ -128,6 +131,7 @@ namespace WakeOnLanLibrary.Infrastructure.Services
                 }
             }
         }
+
 
         /// <summary>
         /// Closes all managed runspaces and runspace pools.
