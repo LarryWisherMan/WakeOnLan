@@ -19,7 +19,6 @@ using WakeOnLanLibrary.Infrastructure.Execution;
 using WakeOnLanLibrary.Infrastructure.Factories;
 using WakeOnLanLibrary.Infrastructure.Helpers;
 using WakeOnLanLibrary.Infrastructure.Monitoring;
-using WakeOnLanLibrary.Infrastructure.Runspaces;
 using WakeOnLanLibrary.Infrastructure.Services;
 using WakeOnLanLibrary.Infrastructure.ValidationStrategies;
 
@@ -134,6 +133,9 @@ namespace WakeOnLanLibrary.Shared.Extensions
 
         public static IServiceCollection AddExecutionServices(this IServiceCollection services)
         {
+
+            services.AddTransient<IPowerShell, PowerShellWrapper>();
+
             services.AddTransient<IPowerShellExecutor, PowerShellExecutor>();
             services.AddTransient<Func<IPowerShellExecutor>>(provider =>
             {
@@ -160,7 +162,8 @@ namespace WakeOnLanLibrary.Shared.Extensions
             services.AddExecutionServices();
             services.AddSingleton<IRemotePowerShellExecutor, RemotePowerShellExecutor>();
             services.AddSingleton<IProxyRequestProcessor, ProxyRequestProcessor>();
-            services.AddSingleton<IRunspacePool, RunspacePoolWrapper>();
+            //services.AddSingleton<IRunspacePool, RunspacePoolWrapper>();
+            //services.AddSingleton<IRunspace, RunspaceWrapper>();
 
             services.AddSingleton<ITaskRunner, TaskRunner>();
             services.AddSingleton<IMagicPacketSender, ProxyMagicPacketSender>();
